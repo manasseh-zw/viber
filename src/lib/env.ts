@@ -6,7 +6,7 @@ function requireEnv(key: string): string {
   return value;
 }
 
-export const env = {
+export const appEnv = {
   GEMINI_API_KEY: requireEnv("GEMINI_API_KEY"),
   E2B_API_KEY: requireEnv("E2B_API_KEY"),
   DEFAULT_MODEL: requireEnv("DEFAULT_MODEL"),
