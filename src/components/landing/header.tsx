@@ -2,7 +2,6 @@ import { GithubLogoIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { Container } from "../container";
 import { Logo } from "../logo";
-import { LandingButton } from "./landing-button";
 import { Button } from "../ui/button";
 
 export function Header() {
