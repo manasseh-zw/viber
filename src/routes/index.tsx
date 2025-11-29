@@ -13,7 +13,7 @@ function App() {
       <Header />
       <Hero />
       <img
-        src="/rick-rubin.png"
+        src="/rick-rubin-min.png"
         alt="Rick Rubin vibecoding"
         className="fixed left-0 z-0 pointer-events-none select-none"
         style={{
