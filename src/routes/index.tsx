@@ -1,6 +1,6 @@
 import { Header } from "@/components/landing/header";
 import { Hero } from "@/components/landing/hero";
-import { Logo } from "@/components/logo";
+import { LogoIcon } from "@/components/logo";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
@@ -12,7 +12,7 @@ function App() {
   return (
     <>
       <div className="page-loader">
-        <Logo />
+        <LogoIcon className="w-16 h-20 text-primary" />
       </div>
       <main className="relative min-h-screen">
         <Header />
