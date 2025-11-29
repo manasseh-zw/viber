@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Container } from "../container";
 import { Logo } from "../logo";
 import { LandingButton } from "./landing-button";
+import { Button } from "../ui/button";
 
 export function Header() {
   return (
@@ -19,10 +20,18 @@ export function Header() {
             </Link>
           </div>
           <div className="flex items-center gap-x-5 md:gap-x-8 animate-fade-up delay-200">
-            <LandingButton className="rounded-xl" size="lg" variant="secondary">
-              <GithubLogoIcon />
-              Repo
-            </LandingButton>
+            <a
+              href="https://github.com/manasseh-zw/viber"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-row gap-2 align-bottom "
+              aria-label="GitHub Repository"
+            >
+              <Button variant="link" size="lg" className="text-black">
+                <GithubLogoIcon className="size-5" />
+                <span className="text-base font-medium">Github</span>
+              </Button>
+            </a>
           </div>
         </nav>
       </Container>

@@ -5,7 +5,7 @@ import { LandingButton } from "./landing-button";
 
 export function Hero() {
   return (
-    <Container className="pb-16 pt-12 text-center lg:pt-28">
+    <Container className="pb-16 pt-12 text-center lg:pt-24">
       <h1 className="mx-auto max-w-4xl font-display text-5xl font-medium tracking-tight text-slate-900 sm:text-8xl animate-fade-up delay-300">
         <span className="font-geist-mono text-primary">
           vibecode<span className="animate-blink">_</span>
@@ -17,8 +17,8 @@ export function Hero() {
       <div className="mx-auto mt-8 max-w-2xl text-md tracking-wide text-slate-700 font-architype h-14">
         <Typewriter
           options={{
-            delay: 20,
-            cursor: "",
+            delay: 25,
+            cursor: "_",
           }}
           onInit={(typewriter) => {
             typewriter

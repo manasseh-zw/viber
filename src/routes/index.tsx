@@ -1,6 +1,7 @@
 import { Header } from "@/components/landing/header";
 import { Hero } from "@/components/landing/hero";
 import { LogoIcon } from "@/components/logo";
+import { ElevenLabsLogo, GeminiLogo } from "@/components/brand";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
@@ -30,6 +31,15 @@ function App() {
               "linear-gradient(to right, black 90%, transparent 100%)",
           }}
         />
+        <div className="fixed bottom-6 right-6 z-10 flex flex-col items-end gap-1 animate-fade-in delay-700 pointer-events-none">
+          <div className="text-xs text-slate-500 font-architype tracking-wide">
+            Powered by
+          </div>
+          <div className="flex items-end gap-4 ">
+            <ElevenLabsLogo className="h-4 w-auto " />
+            <GeminiLogo className=" h-6 w-auto" />
+          </div>
+        </div>
       </main>
     </>
   );
