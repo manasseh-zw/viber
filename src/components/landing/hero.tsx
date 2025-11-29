@@ -14,7 +14,8 @@ export function Hero() {
         <span>your Voice</span>
       </h1>
       <p className="mx-auto mt-6 max-w-2xl text-md tracking-wide text-slate-700 font-architype animate-fade-up delay-400">
-        Build with your voice, never touch your keyboard. become a 10x vibecoder
+        “I have no technical ability. I know nothing about code. All I know is
+        what I like and what I don’t like.”
       </p>
       <div className="mt-10 flex justify-center gap-x-4 animate-fade-up delay-500">
         <LandingButton className="rounded-xl" size="xl" asChild>
