@@ -1,0 +1,97 @@
+import { useState } from "react";
+import { LogoIcon } from "@/components/logo";
+import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
+import { Button } from "@/components/ui/button";
+import { ChatMessages } from "../chat/chat-messages";
+import { ChatInput } from "../chat/chat-input";
+import type { ChatMessageData } from "../chat/chat-message";
+
+interface BuilderSidebarProps {
+  onSendMessage: (message: string) => void;
+  isGenerating: boolean;
+  isApplying: boolean;
+  isSandboxCreating: boolean;
+  progress: string;
+  error: string | null;
+  currentFile?: string | null;
+}
+
+export function BuilderSidebar({
+  onSendMessage,
+  isGenerating,
+  isApplying,
+  isSandboxCreating,
+  progress,
+  error,
+  currentFile,
+}: BuilderSidebarProps) {
+  const [messages, setMessages] = useState<ChatMessageData[]>([
+    {
+      id: "system-1",
+      role: "system",
+      content: "Welcome to Viber! Describe the website you want to build.",
+      timestamp: new Date(),
+    },
+  ]);
+
+  const isLoading = isGenerating || isApplying || isSandboxCreating;
+
+  const handleSubmit = (message: string) => {
+    const userMessage: ChatMessageData = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: message,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    onSendMessage(message);
+  };
+
+  const handleNewProject = () => {
+    window.location.reload();
+  };
+
+  return (
+    <aside className="flex flex-col w-[400px] min-w-[400px] border-r border-border bg-sidebar">
+      {/* Header */}
+      <header className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
+        <a href="/" className="flex items-center gap-2 group">
+          <LogoIcon className="w-6 h-8 text-primary transition-transform group-hover:scale-110" />
+          <span className="font-architype text-xl text-sidebar-foreground">
+            Viber
+          </span>
+        </a>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleNewProject}
+          className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
+        >
+          <PlusIcon weight="bold" className="size-4" />
+        </Button>
+      </header>
+
+      {/* Messages */}
+      <ChatMessages
+        messages={messages}
+        isLoading={isLoading}
+        progress={progress}
+        error={error}
+        currentFile={currentFile}
+      />
+
+      {/* Input */}
+      <ChatInput
+        onSubmit={handleSubmit}
+        isLoading={isLoading}
+        placeholder={
+          isSandboxCreating
+            ? "Setting up your workspace..."
+            : "Describe what you want to build..."
+        }
+        disabled={isSandboxCreating}
+      />
+    </aside>
+  );
+}
