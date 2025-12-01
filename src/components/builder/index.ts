@@ -9,3 +9,5 @@ export {
   GenerationProgress,
   type ChatMessageData,
 } from "./chat";
+
+export { PreviewPanel, PreviewToolbar, SandboxIframe } from "./preview";

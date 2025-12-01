@@ -2,10 +2,8 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
 import { CodeIcon } from "@phosphor-icons/react/dist/csr/Code";
-import { ArrowClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowClockwise";
-import { ArrowSquareOutIcon } from "@phosphor-icons/react/dist/csr/ArrowSquareOut";
-import { SpinnerIcon } from "@phosphor-icons/react/dist/csr/Spinner";
-import { Button } from "@/components/ui/button";
+import { PreviewPanel } from "../preview/preview-panel";
+import { PreviewToolbar } from "../preview/preview-toolbar";
 
 interface BuilderMainProps {
   sandboxUrl: string | null;
@@ -29,12 +27,6 @@ export function BuilderMain({
   const handleRefreshPreview = () => {
     setIframeKey((prev) => prev + 1);
     onRefresh();
-  };
-
-  const handleOpenExternal = () => {
-    if (sandboxUrl) {
-      window.open(sandboxUrl, "_blank");
-    }
   };
 
   const fileList = Object.keys(files).filter(
@@ -83,31 +75,9 @@ export function BuilderMain({
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center gap-2">
-          {activeTab === "preview" && sandboxUrl && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={handleRefreshPreview}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <ArrowClockwiseIcon className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={handleOpenExternal}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <ArrowSquareOutIcon className="size-4" />
-              </Button>
-              <span className="text-xs text-muted-foreground font-mono truncate max-w-[300px]">
-                {sandboxUrl}
-              </span>
-            </>
-          )}
-        </div>
+        {activeTab === "preview" && (
+          <PreviewToolbar url={sandboxUrl} onRefresh={handleRefreshPreview} />
+        )}
       </header>
 
       {/* Content */}
@@ -131,44 +101,6 @@ export function BuilderMain({
   );
 }
 
-function PreviewPanel({
-  sandboxUrl,
-  isLoading,
-  iframeKey,
-}: {
-  sandboxUrl: string | null;
-  isLoading: boolean;
-  iframeKey: number;
-}) {
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-        <SpinnerIcon className="size-8 animate-spin text-primary" />
-        <p className="text-sm">Setting up your workspace...</p>
-      </div>
-    );
-  }
-
-  if (!sandboxUrl) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-        <EyeIcon className="size-12 opacity-50" />
-        <p className="text-sm">Preview will appear here</p>
-      </div>
-    );
-  }
-
-  return (
-    <iframe
-      key={iframeKey}
-      src={sandboxUrl}
-      className="w-full h-full border-0 bg-white"
-      title="Preview"
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-    />
-  );
-}
-
 function CodePanel({
   files,
   fileList,
@@ -186,8 +118,15 @@ function CodePanel({
   if (fileList.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-        <CodeIcon className="size-12 opacity-50" />
-        <p className="text-sm">No files generated yet</p>
+        <div className="p-4 rounded-full bg-muted/50">
+          <CodeIcon className="size-10 opacity-50" />
+        </div>
+        <div className="text-center space-y-1">
+          <p className="text-sm font-medium">No files generated yet</p>
+          <p className="text-xs opacity-70">
+            Files will appear here after generation
+          </p>
+        </div>
       </div>
     );
   }
