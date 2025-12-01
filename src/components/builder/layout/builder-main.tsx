@@ -4,6 +4,7 @@ import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
 import { CodeIcon } from "@phosphor-icons/react/dist/csr/Code";
 import { PreviewPanel } from "../preview/preview-panel";
 import { PreviewToolbar } from "../preview/preview-toolbar";
+import { CodePanel } from "../code";
 
 interface BuilderMainProps {
   sandboxUrl: string | null;
@@ -21,21 +22,12 @@ export function BuilderMain({
   onRefresh,
 }: BuilderMainProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("preview");
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
 
   const handleRefreshPreview = () => {
     setIframeKey((prev) => prev + 1);
     onRefresh();
   };
-
-  const fileList = Object.keys(files).filter(
-    (f) =>
-      f.startsWith("src/") ||
-      f === "index.html" ||
-      f.endsWith(".css") ||
-      f.endsWith(".json")
-  );
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden bg-background">
@@ -89,87 +81,9 @@ export function BuilderMain({
             iframeKey={iframeKey}
           />
         ) : (
-          <CodePanel
-            files={files}
-            fileList={fileList}
-            selectedFile={selectedFile}
-            onSelectFile={setSelectedFile}
-          />
+          <CodePanel files={files} />
         )}
       </div>
     </main>
-  );
-}
-
-function CodePanel({
-  files,
-  fileList,
-  selectedFile,
-  onSelectFile,
-}: {
-  files: Record<string, string>;
-  fileList: string[];
-  selectedFile: string | null;
-  onSelectFile: (file: string | null) => void;
-}) {
-  const currentFile = selectedFile || fileList[0];
-  const fileContent = currentFile ? files[currentFile] : null;
-
-  if (fileList.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-        <div className="p-4 rounded-full bg-muted/50">
-          <CodeIcon className="size-10 opacity-50" />
-        </div>
-        <div className="text-center space-y-1">
-          <p className="text-sm font-medium">No files generated yet</p>
-          <p className="text-xs opacity-70">
-            Files will appear here after generation
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-full">
-      {/* File tree */}
-      <div className="w-56 min-w-56 border-r border-border bg-muted/30 overflow-y-auto">
-        <div className="p-2">
-          <p className="px-2 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Files
-          </p>
-          <div className="mt-1 space-y-0.5">
-            {fileList.map((file) => (
-              <button
-                key={file}
-                onClick={() => onSelectFile(file)}
-                className={cn(
-                  "w-full text-left px-2 py-1.5 rounded text-sm font-mono truncate transition-colors",
-                  file === currentFile
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/70 hover:bg-muted hover:text-foreground"
-                )}
-              >
-                {file}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Code viewer */}
-      <div className="flex-1 overflow-auto">
-        {fileContent ? (
-          <pre className="p-4 text-sm font-mono text-foreground whitespace-pre-wrap">
-            <code>{fileContent}</code>
-          </pre>
-        ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            Select a file to view its contents
-          </div>
-        )}
-      </div>
-    </div>
   );
 }

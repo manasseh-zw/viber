@@ -11,3 +11,5 @@ export {
 } from "./chat";
 
 export { PreviewPanel, PreviewToolbar, SandboxIframe } from "./preview";
+
+export { CodePanel, FileTree, CodeViewer } from "./code";
