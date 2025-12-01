@@ -19,11 +19,9 @@ export interface CommandResult {
 }
 
 export interface SandboxProviderConfig {
-  e2b?: {
-    apiKey: string;
-    timeoutMs?: number;
-    template?: string;
-  };
+  apiKey?: string;
+  timeoutMs?: number;
+  template?: string;
 }
 
 export interface SandboxFileCache {
@@ -47,7 +45,7 @@ export abstract class SandboxProvider {
   protected sandbox: unknown;
   protected sandboxInfo: SandboxInfo | null = null;
 
-  constructor(config: SandboxProviderConfig) {
+  constructor(config: SandboxProviderConfig = {}) {
     this.config = config;
   }
 
@@ -57,18 +55,12 @@ export abstract class SandboxProvider {
   abstract readFile(path: string): Promise<string>;
   abstract listFiles(directory?: string): Promise<string[]>;
   abstract installPackages(packages: string[]): Promise<CommandResult>;
+  abstract setupViteApp(): Promise<void>;
+  abstract restartViteServer(): Promise<void>;
   abstract getSandboxUrl(): string | null;
   abstract getSandboxInfo(): SandboxInfo | null;
   abstract terminate(): Promise<void>;
   abstract isAlive(): boolean;
-
-  async setupViteApp(): Promise<void> {
-    throw new Error("setupViteApp not implemented for this provider");
-  }
-
-  async restartViteServer(): Promise<void> {
-    throw new Error("restartViteServer not implemented for this provider");
-  }
 }
 
 declare global {
@@ -79,4 +71,3 @@ declare global {
   // eslint-disable-next-line no-var
   var existingFiles: Set<string>;
 }
-
