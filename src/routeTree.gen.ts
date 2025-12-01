@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiTestRouteImport } from './routes/api/test'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiSandboxStatusRouteImport } from './routes/api/sandbox/status'
 import { Route as ApiSandboxKillRouteImport } from './routes/api/sandbox/kill'
@@ -23,11 +22,6 @@ import { Route as ApiApplyStreamRouteImport } from './routes/api/apply/stream'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiTestRoute = ApiTestRouteImport.update({
-  id: '/api/test',
-  path: '/api/test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -74,7 +68,6 @@ const ApiApplyStreamRoute = ApiApplyStreamRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
-  '/api/test': typeof ApiTestRoute
   '/api/apply/stream': typeof ApiApplyStreamRoute
   '/api/generate/stream': typeof ApiGenerateStreamRoute
   '/api/packages/install': typeof ApiPackagesInstallRoute
@@ -86,7 +79,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
-  '/api/test': typeof ApiTestRoute
   '/api/apply/stream': typeof ApiApplyStreamRoute
   '/api/generate/stream': typeof ApiGenerateStreamRoute
   '/api/packages/install': typeof ApiPackagesInstallRoute
@@ -99,7 +91,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
-  '/api/test': typeof ApiTestRoute
   '/api/apply/stream': typeof ApiApplyStreamRoute
   '/api/generate/stream': typeof ApiGenerateStreamRoute
   '/api/packages/install': typeof ApiPackagesInstallRoute
@@ -113,7 +104,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/api/health'
-    | '/api/test'
     | '/api/apply/stream'
     | '/api/generate/stream'
     | '/api/packages/install'
@@ -125,7 +115,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/api/health'
-    | '/api/test'
     | '/api/apply/stream'
     | '/api/generate/stream'
     | '/api/packages/install'
@@ -137,7 +126,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/api/health'
-    | '/api/test'
     | '/api/apply/stream'
     | '/api/generate/stream'
     | '/api/packages/install'
@@ -150,7 +138,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiHealthRoute: typeof ApiHealthRoute
-  ApiTestRoute: typeof ApiTestRoute
   ApiApplyStreamRoute: typeof ApiApplyStreamRoute
   ApiGenerateStreamRoute: typeof ApiGenerateStreamRoute
   ApiPackagesInstallRoute: typeof ApiPackagesInstallRoute
@@ -167,13 +154,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/test': {
-      id: '/api/test'
-      path: '/api/test'
-      fullPath: '/api/test'
-      preLoaderRoute: typeof ApiTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/health': {
@@ -238,7 +218,6 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiHealthRoute: ApiHealthRoute,
-  ApiTestRoute: ApiTestRoute,
   ApiApplyStreamRoute: ApiApplyStreamRoute,
   ApiGenerateStreamRoute: ApiGenerateStreamRoute,
   ApiPackagesInstallRoute: ApiPackagesInstallRoute,
