@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChatMessages } from "../chat/chat-messages";
 import { ChatInput } from "../chat/chat-input";
 import type { ChatMessageData } from "../chat/chat-message";
+import type { GeneratedFile } from "@/lib/types/ai";
 
 interface BuilderSidebarProps {
   onSendMessage: (message: string) => void;
@@ -14,6 +15,8 @@ interface BuilderSidebarProps {
   progress: string;
   error: string | null;
   currentFile?: string | null;
+  files?: GeneratedFile[];
+  packages?: string[];
 }
 
 export function BuilderSidebar({
@@ -24,6 +27,8 @@ export function BuilderSidebar({
   progress,
   error,
   currentFile,
+  files = [],
+  packages = [],
 }: BuilderSidebarProps) {
   const [messages, setMessages] = useState<ChatMessageData[]>([
     {
@@ -75,10 +80,13 @@ export function BuilderSidebar({
       {/* Messages */}
       <ChatMessages
         messages={messages}
-        isLoading={isLoading}
+        isGenerating={isGenerating}
+        isApplying={isApplying}
         progress={progress}
         error={error}
         currentFile={currentFile}
+        files={files}
+        packages={packages}
       />
 
       {/* Input */}

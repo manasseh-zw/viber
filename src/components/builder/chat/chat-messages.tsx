@@ -2,29 +2,38 @@ import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage, type ChatMessageData } from "./chat-message";
 import { GenerationProgress } from "./generation-progress";
+import type { GeneratedFile } from "@/lib/types/ai";
 
 interface ChatMessagesProps {
   messages: ChatMessageData[];
-  isLoading?: boolean;
+  isGenerating?: boolean;
+  isApplying?: boolean;
   progress?: string;
   error?: string | null;
   currentFile?: string | null;
+  files?: GeneratedFile[];
+  packages?: string[];
 }
 
 export function ChatMessages({
   messages,
-  isLoading,
+  isGenerating,
+  isApplying,
   progress,
   error,
   currentFile,
+  files = [],
+  packages = [],
 }: ChatMessagesProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isLoading = isGenerating || isApplying;
+  const hasProgress = files.length > 0 || packages.length > 0;
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, progress]);
+  }, [messages, progress, files.length, packages.length]);
 
   return (
     <ScrollArea className="flex-1">
@@ -33,12 +42,15 @@ export function ChatMessages({
           <ChatMessage key={message.id} message={message} />
         ))}
 
-        {(isLoading || error) && (
+        {(isLoading || error || hasProgress) && (
           <GenerationProgress
-            isLoading={isLoading}
+            isGenerating={isGenerating}
+            isApplying={isApplying}
             progress={progress}
             error={error}
             currentFile={currentFile}
+            files={files}
+            packages={packages}
           />
         )}
       </div>

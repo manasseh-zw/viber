@@ -51,6 +51,8 @@ export function BuilderLayout() {
         progress={generation.progress}
         error={generation.error || sandbox.error}
         currentFile={generation.currentFile}
+        files={generation.files}
+        packages={generation.packages}
       />
       <BuilderMain
         sandboxUrl={sandbox.sandboxUrl}
