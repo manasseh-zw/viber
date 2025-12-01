@@ -17,7 +17,10 @@ interface ChatMessageProps {
   showAvatar?: boolean;
 }
 
-export function ChatMessage({ message, showAvatar = false }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  showAvatar = false,
+}: ChatMessageProps) {
   const { role, content } = message;
 
   return (

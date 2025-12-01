@@ -9,6 +9,7 @@ import type { GeneratedFile } from "@/lib/types/ai";
 
 interface BuilderSidebarProps {
   onSendMessage: (message: string) => void;
+  onCancelGeneration?: () => void;
   isGenerating: boolean;
   isApplying: boolean;
   isSandboxCreating: boolean;
@@ -21,6 +22,7 @@ interface BuilderSidebarProps {
 
 export function BuilderSidebar({
   onSendMessage,
+  onCancelGeneration,
   isGenerating,
   isApplying,
   isSandboxCreating,
@@ -92,7 +94,9 @@ export function BuilderSidebar({
       {/* Input */}
       <ChatInput
         onSubmit={handleSubmit}
+        onCancel={onCancelGeneration}
         isLoading={isLoading}
+        isGenerating={isGenerating}
         placeholder={
           isSandboxCreating
             ? "Setting up your workspace..."

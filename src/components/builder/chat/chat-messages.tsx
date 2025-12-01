@@ -26,14 +26,13 @@ export function ChatMessages({
   packages = [],
 }: ChatMessagesProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const isLoading = isGenerating || isApplying;
   const hasProgress = files.length > 0 || packages.length > 0;
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, progress, files.length, packages.length]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, progress, files.length, packages.length, isGenerating, isApplying]);
 
   return (
     <ScrollArea className="flex-1">
@@ -53,6 +52,8 @@ export function ChatMessages({
             packages={packages}
           />
         )}
+
+        <div ref={bottomRef} />
       </div>
     </ScrollArea>
   );
