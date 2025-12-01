@@ -65,6 +65,56 @@ function formatConversationHistory(
   return `\nRECENT CONVERSATION:\n${formattedMessages}\n`;
 }
 
+class IncrementalParser {
+  private buffer = "";
+  private emittedFiles = new Set<string>();
+  private emittedPackages = new Set<string>();
+
+  append(chunk: string): {
+    newFiles: GeneratedFile[];
+    newPackages: string[];
+  } {
+    this.buffer += chunk;
+    const newFiles: GeneratedFile[] = [];
+    const newPackages: string[] = [];
+
+    const fileRegex = /<file\s+path="([^"]+)">([\s\S]*?)<\/file>/g;
+    let match;
+    while ((match = fileRegex.exec(this.buffer)) !== null) {
+      const path = match[1].trim();
+      if (!this.emittedFiles.has(path)) {
+        this.emittedFiles.add(path);
+        newFiles.push({
+          path,
+          content: match[2].trim(),
+        });
+      }
+    }
+
+    const packageRegex = /<package>([^<]+)<\/package>/g;
+    while ((match = packageRegex.exec(this.buffer)) !== null) {
+      const pkg = match[1].trim();
+      if (pkg && !this.emittedPackages.has(pkg)) {
+        this.emittedPackages.add(pkg);
+        newPackages.push(pkg);
+      }
+    }
+
+    return { newFiles, newPackages };
+  }
+
+  getAll(): { files: GeneratedFile[]; packages: string[] } {
+    return {
+      files: parseFileTags(this.buffer),
+      packages: parsePackageTags(this.buffer),
+    };
+  }
+
+  getRawResponse(): string {
+    return this.buffer;
+  }
+}
+
 export async function generateCode(
   options: GenerateCodeOptions
 ): Promise<GenerateCodeResult> {
@@ -92,36 +142,34 @@ export async function generateCode(
       maxOutputTokens: appConfig.ai.maxTokens,
     });
 
-    let rawResponse = "";
+    const parser = new IncrementalParser();
 
     onEvent?.({ type: "status", message: "Generating code..." });
 
     for await (const chunk of result.textStream) {
-      rawResponse += chunk;
       onEvent?.({
         type: "stream",
-        data: { content: chunk, index: rawResponse.length },
+        data: { content: chunk, index: parser.getRawResponse().length },
       });
+
+      const { newFiles, newPackages } = parser.append(chunk);
+
+      for (const file of newFiles) {
+        onEvent?.({
+          type: "file",
+          data: { path: file.path, content: file.content },
+        });
+      }
+
+      for (const pkg of newPackages) {
+        onEvent?.({
+          type: "package",
+          data: { name: pkg },
+        });
+      }
     }
 
-    onEvent?.({ type: "status", message: "Parsing generated code..." });
-
-    const files = parseFileTags(rawResponse);
-    const packages = parsePackageTags(rawResponse);
-
-    for (const file of files) {
-      onEvent?.({
-        type: "file",
-        data: { path: file.path, content: file.content },
-      });
-    }
-
-    for (const pkg of packages) {
-      onEvent?.({
-        type: "package",
-        data: { name: pkg },
-      });
-    }
+    const { files, packages } = parser.getAll();
 
     onEvent?.({
       type: "complete",
@@ -132,7 +180,7 @@ export async function generateCode(
       success: true,
       files,
       packages,
-      rawResponse,
+      rawResponse: parser.getRawResponse(),
     };
   } catch (error) {
     const errorMessage =
@@ -179,36 +227,34 @@ export async function* streamGenerateCode(
       maxOutputTokens: appConfig.ai.maxTokens,
     });
 
-    let rawResponse = "";
+    const parser = new IncrementalParser();
 
     yield { type: "status", message: "Generating code..." };
 
     for await (const chunk of result.textStream) {
-      rawResponse += chunk;
       yield {
         type: "stream",
-        data: { content: chunk, index: rawResponse.length },
+        data: { content: chunk, index: parser.getRawResponse().length },
       };
+
+      const { newFiles, newPackages } = parser.append(chunk);
+
+      for (const file of newFiles) {
+        yield {
+          type: "file",
+          data: { path: file.path, content: file.content },
+        };
+      }
+
+      for (const pkg of newPackages) {
+        yield {
+          type: "package",
+          data: { name: pkg },
+        };
+      }
     }
 
-    yield { type: "status", message: "Parsing generated code..." };
-
-    const files = parseFileTags(rawResponse);
-    const packages = parsePackageTags(rawResponse);
-
-    for (const file of files) {
-      yield {
-        type: "file",
-        data: { path: file.path, content: file.content },
-      };
-    }
-
-    for (const pkg of packages) {
-      yield {
-        type: "package",
-        data: { name: pkg },
-      };
-    }
+    const { files, packages } = parser.getAll();
 
     yield {
       type: "complete",

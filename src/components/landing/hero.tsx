@@ -31,7 +31,7 @@ export function Hero() {
       </div>
       <div className="mt-4 flex justify-center gap-x-4 animate-fade-in delay-500">
         <LandingButton className="rounded-xl" size="xl" asChild>
-          <Link to="/">Start Vibing</Link>
+          <Link to="/builder">Start Vibing</Link>
         </LandingButton>
       </div>
     </Container>

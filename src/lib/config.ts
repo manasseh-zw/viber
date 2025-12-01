@@ -1,23 +1,22 @@
 export const appConfig = {
   // E2B Sandbox Configuration
   e2b: {
-    timeoutMinutes: 30,
+    timeoutMinutes: 10,
     get timeoutMs() {
       return this.timeoutMinutes * 60 * 1000;
     },
     vitePort: 5173,
-    viteStartupDelay: 10000,
+    viteStartupDelay: 15000,
     workingDirectory: "/home/user/app",
   },
 
-  // AI Model Configuration (Gemini only)
   ai: {
-    defaultModel: "gemini-2.0-flash",
-    availableModels: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+    defaultModel: "gemini-3-pro", // Best balance for default use
+    availableModels: ["gemini-3-pro", "gemini-2.5-flash", "gemini-2.5-pro"], // The updated Top 3
     modelDisplayNames: {
-      "gemini-2.0-flash": "Gemini 2.0 Flash",
-      "gemini-1.5-pro": "Gemini 1.5 Pro",
-      "gemini-1.5-flash": "Gemini 1.5 Flash",
+      "gemini-3-pro": "Gemini 3 Pro",
+      "gemini-2.5-flash": "Gemini 2.5 Flash",
+      "gemini-2.5-pro": "Gemini 2.5 Pro",
     } as Record<string, string>,
     defaultTemperature: 0.7,
     maxTokens: 8000,
@@ -51,7 +50,7 @@ export const appConfig = {
 
   // Package Installation Configuration
   packages: {
-    useBun: true,
+    useLegacyPeerDeps: true,
     installTimeout: 60000,
     autoRestartVite: true,
   },

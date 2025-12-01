@@ -1,5 +1,3 @@
-"use client";
-
 import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
 import { InfoIcon } from "@phosphor-icons/react/dist/csr/Info";
 import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
