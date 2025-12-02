@@ -9,11 +9,14 @@ import { FileJsIcon } from "@phosphor-icons/react/dist/csr/FileJs";
 import { FileTsIcon } from "@phosphor-icons/react/dist/csr/FileTs";
 import { FileCssIcon } from "@phosphor-icons/react/dist/csr/FileCss";
 import { FileHtmlIcon } from "@phosphor-icons/react/dist/csr/FileHtml";
+import { CircleNotchIcon } from "@phosphor-icons/react/dist/csr/CircleNotch";
 
 interface FileTreeProps {
   files: string[];
   selectedFile: string | null;
   onSelectFile: (file: string) => void;
+  isStreaming?: boolean;
+  currentStreamingFile?: string | null;
 }
 
 interface TreeNode {
@@ -124,14 +127,21 @@ function TreeNodeItem({
   onSelectFile,
   depth = 0,
   defaultExpanded = true,
+  isStreaming = false,
+  currentStreamingFile = null,
 }: {
   node: TreeNode;
   selectedFile: string | null;
   onSelectFile: (file: string) => void;
   depth?: number;
   defaultExpanded?: boolean;
+  isStreaming?: boolean;
+  currentStreamingFile?: string | null;
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  const isCurrentlyStreaming =
+    isStreaming && currentStreamingFile === node.path;
 
   if (node.type === "folder") {
     return (
@@ -166,6 +176,8 @@ function TreeNodeItem({
                 onSelectFile={onSelectFile}
                 depth={depth + 1}
                 defaultExpanded={depth < 1}
+                isStreaming={isStreaming}
+                currentStreamingFile={currentStreamingFile}
               />
             ))}
           </div>
@@ -178,29 +190,107 @@ function TreeNodeItem({
     <button
       onClick={() => onSelectFile(node.path)}
       className={cn(
-        "w-full flex items-center gap-1.5 px-2 py-1 text-sm rounded transition-colors",
-        node.path === selectedFile
-          ? "bg-primary/10 text-primary font-medium"
-          : "text-foreground/80 hover:bg-muted/50 hover:text-foreground"
+        "w-full flex items-center gap-1.5 px-2 py-1.5 text-sm rounded-md transition-all",
+        isCurrentlyStreaming
+          ? "bg-primary/15 text-primary ring-1 ring-primary/30 shadow-sm"
+          : node.path === selectedFile
+            ? "bg-primary/10 text-primary font-medium"
+            : "text-foreground/80 hover:bg-muted/50 hover:text-foreground"
       )}
       style={{ paddingLeft: `${depth * 12 + 8}px` }}
     >
-      <span className="size-3.5 shrink-0" />
+      {isCurrentlyStreaming ? (
+        <div className="relative shrink-0">
+          <CircleNotchIcon className="size-3.5 animate-spin text-primary" />
+          <span className="absolute -top-0.5 -right-0.5 flex size-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex rounded-full size-2 bg-primary" />
+          </span>
+        </div>
+      ) : (
+        <span className="size-3.5 shrink-0" />
+      )}
       {getFileIcon(node.name)}
-      <span className="truncate font-mono text-xs">{node.name}</span>
+      <span
+        className={cn(
+          "truncate font-mono text-xs",
+          isCurrentlyStreaming && "font-semibold"
+        )}
+      >
+        {node.name}
+      </span>
+      {isCurrentlyStreaming && (
+        <span className="ml-auto text-[9px] px-1 py-0.5 bg-primary/20 text-primary rounded font-medium uppercase tracking-wide">
+          Live
+        </span>
+      )}
     </button>
   );
 }
 
-export function FileTree({ files, selectedFile, onSelectFile }: FileTreeProps) {
+export function FileTree({
+  files,
+  selectedFile,
+  onSelectFile,
+  isStreaming = false,
+  currentStreamingFile = null,
+}: FileTreeProps) {
   const tree = useMemo(() => buildTree(files), [files]);
 
   return (
     <div className="w-60 min-w-60 border-r border-border bg-muted/20 overflow-y-auto">
       <div className="p-2">
-        <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Files
-        </p>
+        <div className="flex items-center justify-between px-2 py-1.5">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Files
+          </p>
+          {isStreaming && (
+            <span className="flex items-center gap-1.5 text-[10px] text-primary font-semibold">
+              <span className="relative flex size-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full size-2 bg-primary" />
+              </span>
+              Streaming
+            </span>
+          )}
+        </div>
+
+        {/* Current streaming file - shown at top with highlight */}
+        {isStreaming && currentStreamingFile && (
+          <div className="mb-2 px-1">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1 px-2">
+              Currently generating
+            </div>
+            <div className="flex items-center gap-1.5 px-2 py-2 text-sm rounded-md bg-primary/20 text-primary ring-2 ring-primary/40 shadow-md">
+              <div className="relative shrink-0">
+                <CircleNotchIcon className="size-4 animate-spin text-primary" />
+                <span className="absolute -top-0.5 -right-0.5 flex size-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex rounded-full size-2 bg-primary" />
+                </span>
+              </div>
+              {getFileIcon(
+                currentStreamingFile.split("/").pop() || currentStreamingFile
+              )}
+              <span className="truncate font-mono text-xs font-bold">
+                {currentStreamingFile.split("/").pop()}
+              </span>
+              <span className="ml-auto text-[9px] px-1.5 py-0.5 bg-primary text-primary-foreground rounded font-bold uppercase">
+                Live
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Divider */}
+        {isStreaming && currentStreamingFile && files.length > 1 && (
+          <div className="flex items-center gap-2 px-2 py-1 mb-1">
+            <div className="flex-1 h-px bg-border/50" />
+            <span className="text-[10px] text-muted-foreground">All files</span>
+            <div className="flex-1 h-px bg-border/50" />
+          </div>
+        )}
+
         <div className="mt-1">
           {tree.map((node) => (
             <TreeNodeItem
@@ -208,6 +298,8 @@ export function FileTree({ files, selectedFile, onSelectFile }: FileTreeProps) {
               node={node}
               selectedFile={selectedFile}
               onSelectFile={onSelectFile}
+              isStreaming={isStreaming}
+              currentStreamingFile={currentStreamingFile}
             />
           ))}
         </div>

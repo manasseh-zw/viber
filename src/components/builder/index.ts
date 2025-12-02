@@ -12,4 +12,4 @@ export {
 
 export { PreviewPanel, PreviewToolbar, SandboxIframe } from "./preview";
 
-export { CodePanel, FileTree, CodeViewer } from "./code";
+export { CodePanel, FileTree, CodeViewer, StreamingCodeViewer } from "./code";

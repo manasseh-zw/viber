@@ -1,29 +1,81 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { CodeIcon } from "@phosphor-icons/react/dist/csr/Code";
 import { FileTree } from "./file-tree";
 import { CodeViewer } from "./code-viewer";
+import { StreamingCodeViewer } from "./streaming-code-viewer";
+import type { StreamingFile } from "@/lib/hooks/use-generation";
 
 interface CodePanelProps {
   files: Record<string, string>;
+  isStreaming?: boolean;
+  currentFile?: StreamingFile | null;
+  streamingFiles?: StreamingFile[];
 }
 
-export function CodePanel({ files }: CodePanelProps) {
+export function CodePanel({
+  files,
+  isStreaming = false,
+  currentFile = null,
+  streamingFiles = [],
+}: CodePanelProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [userSelectedDuringStream, setUserSelectedDuringStream] = useState(false);
+  const wasStreamingRef = useRef(false);
 
-  const fileList = Object.keys(files).filter(
-    (f) =>
-      f.startsWith("src/") ||
-      f === "index.html" ||
-      f === "package.json" ||
-      f === "vite.config.ts" ||
-      f === "tailwind.config.js" ||
-      f === "tsconfig.json"
+  useEffect(() => {
+    if (isStreaming && !wasStreamingRef.current) {
+      setUserSelectedDuringStream(false);
+      setSelectedFile(null);
+    }
+    wasStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+
+  const sandboxFileList = useMemo(
+    () =>
+      Object.keys(files).filter(
+        (f) =>
+          f.startsWith("src/") ||
+          f === "index.html" ||
+          f === "package.json" ||
+          f === "vite.config.ts" ||
+          f === "tailwind.config.js" ||
+          f === "tsconfig.json"
+      ),
+    [files]
   );
 
-  const currentFile = selectedFile || fileList[0];
-  const fileContent = currentFile ? files[currentFile] : null;
+  const streamingFileList = useMemo(
+    () => streamingFiles.map((f) => f.path),
+    [streamingFiles]
+  );
 
-  if (fileList.length === 0) {
+  const hasActiveStreaming = isStreaming && (currentFile || streamingFiles.length > 0);
+  const hasSandboxFiles = sandboxFileList.length > 0;
+
+  const showStreamingView = hasActiveStreaming && !userSelectedDuringStream;
+
+  const fileList = hasActiveStreaming && !hasSandboxFiles
+    ? [...new Set([...(currentFile ? [currentFile.path] : []), ...streamingFileList])]
+    : sandboxFileList;
+
+  const handleSelectFile = (path: string) => {
+    setSelectedFile(path);
+    if (isStreaming) {
+      setUserSelectedDuringStream(true);
+    }
+  };
+
+  const getFileContent = (filePath: string): string | null => {
+    if (currentFile?.path === filePath) {
+      return currentFile.content;
+    }
+    const streamFile = streamingFiles.find((f) => f.path === filePath);
+    if (streamFile) return streamFile.content;
+
+    return files[filePath] ?? null;
+  };
+
+  if (fileList.length === 0 && !hasActiveStreaming) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
         <div className="p-4 rounded-full bg-muted/50">
@@ -39,14 +91,43 @@ export function CodePanel({ files }: CodePanelProps) {
     );
   }
 
+  if (showStreamingView) {
+    return (
+      <div className="flex h-full">
+        <FileTree
+          files={fileList}
+          selectedFile={currentFile?.path ?? null}
+          onSelectFile={handleSelectFile}
+          isStreaming={isStreaming}
+          currentStreamingFile={currentFile?.path}
+        />
+        <StreamingCodeViewer
+          currentFile={currentFile}
+          completedFiles={streamingFiles}
+          isStreaming={isStreaming}
+        />
+      </div>
+    );
+  }
+
+  const activeFilePath = selectedFile || currentFile?.path || fileList[0];
+  const fileContent = activeFilePath ? getFileContent(activeFilePath) : null;
+  const isActiveFileStreaming = isStreaming && currentFile?.path === activeFilePath;
+
   return (
     <div className="flex h-full">
       <FileTree
         files={fileList}
-        selectedFile={currentFile}
-        onSelectFile={setSelectedFile}
+        selectedFile={activeFilePath}
+        onSelectFile={handleSelectFile}
+        isStreaming={isStreaming}
+        currentStreamingFile={currentFile?.path}
       />
-      <CodeViewer fileName={currentFile} content={fileContent} />
+      <CodeViewer
+        fileName={activeFilePath}
+        content={fileContent}
+        isStreaming={isActiveFileStreaming}
+      />
     </div>
   );
 }

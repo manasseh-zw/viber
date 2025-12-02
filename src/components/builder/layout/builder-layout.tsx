@@ -91,7 +91,7 @@ export function BuilderLayout() {
         isSandboxCreating={sandbox.isCreating}
         progress={generation.progress}
         error={generation.error || sandbox.error}
-        currentFile={generation.currentFile}
+        currentFile={generation.currentFile?.path ?? null}
         files={generation.files}
         packages={generation.packages}
       />
@@ -100,6 +100,9 @@ export function BuilderLayout() {
         isLoading={sandbox.isCreating}
         files={sandbox.files}
         onRefresh={() => sandbox.refreshFiles()}
+        isStreaming={generation.isStreaming}
+        currentFile={generation.currentFile}
+        streamingFiles={generation.streamingFiles}
       />
     </div>
   );

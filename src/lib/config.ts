@@ -19,7 +19,7 @@ export const appConfig = {
       "gemini-2.5-pro": "Gemini 2.5 Pro",
     } as Record<string, string>,
     defaultTemperature: 0.7,
-    maxTokens: 8000,
+    maxTokens: 16000,
     truncationRecoveryMaxTokens: 4000,
   },
 

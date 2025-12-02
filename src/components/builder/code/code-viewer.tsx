@@ -3,10 +3,12 @@ import { codeToHtml, type BundledLanguage } from "shiki";
 import { cn } from "@/lib/utils";
 import { CopyIcon } from "@phosphor-icons/react/dist/csr/Copy";
 import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";
+import { CircleNotchIcon } from "@phosphor-icons/react/dist/csr/CircleNotch";
 
 interface CodeViewerProps {
   fileName: string | null;
   content: string | null;
+  isStreaming?: boolean;
 }
 
 function getLanguage(fileName: string): BundledLanguage | "text" {
@@ -35,15 +37,31 @@ function getLanguage(fileName: string): BundledLanguage | "text" {
   }
 }
 
-export function CodeViewer({ fileName, content }: CodeViewerProps) {
+export function CodeViewer({
+  fileName,
+  content,
+  isStreaming = false,
+}: CodeViewerProps) {
   const [highlightedCode, setHighlightedCode] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const codeRef = useRef<HTMLDivElement>(null);
+  const prevContentRef = useRef<string>("");
 
   useEffect(() => {
     if (!content || !fileName) {
       setHighlightedCode("");
+      return;
+    }
+
+    if (content === prevContentRef.current && highlightedCode) {
+      return;
+    }
+    prevContentRef.current = content;
+
+    if (isStreaming && content.length < 5000) {
+      setHighlightedCode(`<pre><code>${escapeHtml(content)}</code></pre>`);
+      setIsLoading(false);
       return;
     }
 
@@ -79,12 +97,20 @@ export function CodeViewer({ fileName, content }: CodeViewerProps) {
       }
     };
 
-    highlight();
+    const delay = isStreaming ? 500 : 0;
+    const timeout = setTimeout(highlight, delay);
 
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
     };
-  }, [content, fileName]);
+  }, [content, fileName, isStreaming]);
+
+  useEffect(() => {
+    if (isStreaming && codeRef.current) {
+      codeRef.current.scrollTop = codeRef.current.scrollHeight;
+    }
+  }, [content, isStreaming]);
 
   const handleCopy = async () => {
     if (!content) return;
@@ -104,10 +130,25 @@ export function CodeViewer({ fileName, content }: CodeViewerProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[#0d1117]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border/50 bg-[#161b22]">
-        <span className="text-xs font-mono text-muted-foreground truncate">
-          {fileName}
-        </span>
+      <div
+        className={cn(
+          "flex items-center justify-between px-4 py-2 border-b border-border/50",
+          isStreaming ? "bg-primary/10" : "bg-[#161b22]"
+        )}
+      >
+        <div className="flex items-center gap-2">
+          {isStreaming && (
+            <CircleNotchIcon className="size-3.5 animate-spin text-primary" />
+          )}
+          <span className="text-xs font-mono text-muted-foreground truncate">
+            {fileName}
+          </span>
+          {isStreaming && (
+            <span className="text-[10px] px-1.5 py-0.5 bg-primary/20 text-primary rounded font-medium">
+              Streaming
+            </span>
+          )}
+        </div>
         <button
           onClick={handleCopy}
           className={cn(
@@ -132,7 +173,7 @@ export function CodeViewer({ fileName, content }: CodeViewerProps) {
       </div>
 
       {/* Code */}
-      <div className="flex-1 overflow-auto">
+      <div ref={codeRef} className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="p-4">
             <div className="space-y-2 animate-pulse">
@@ -146,11 +187,15 @@ export function CodeViewer({ fileName, content }: CodeViewerProps) {
             </div>
           </div>
         ) : (
-          <div
-            ref={codeRef}
-            className="code-viewer-content p-4 text-sm [&_pre]:bg-transparent! [&_pre]:m-0! [&_pre]:p-0! [&_code]:font-mono [&_.line]:leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: highlightedCode }}
-          />
+          <div className="relative">
+            <div
+              className="code-viewer-content p-4 text-sm [&_pre]:bg-transparent! [&_pre]:m-0! [&_pre]:p-0! [&_code]:font-mono [&_.line]:leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: highlightedCode }}
+            />
+            {isStreaming && (
+              <span className="absolute bottom-4 right-4 inline-block w-2 h-4 bg-primary animate-pulse rounded-sm" />
+            )}
+          </div>
         )}
       </div>
     </div>

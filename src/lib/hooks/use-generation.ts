@@ -1,24 +1,90 @@
 import { useState, useCallback, useRef } from "react";
 import type { GeneratedFile } from "../types/ai";
 
+export interface StreamingFile {
+  path: string;
+  content: string;
+  type: "javascript" | "css" | "json" | "html" | "text";
+  completed: boolean;
+}
+
 export interface GenerationState {
   isGenerating: boolean;
   isApplying: boolean;
+  isStreaming: boolean;
   progress: string;
   streamedCode: string;
-  currentFile: string | null;
+  currentFile: StreamingFile | null;
   files: GeneratedFile[];
+  streamingFiles: StreamingFile[];
   packages: string[];
   error: string | null;
+}
+
+function getFileType(path: string): StreamingFile["type"] {
+  const ext = path.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "js":
+    case "jsx":
+    case "ts":
+    case "tsx":
+      return "javascript";
+    case "css":
+      return "css";
+    case "json":
+      return "json";
+    case "html":
+      return "html";
+    default:
+      return "text";
+  }
+}
+
+function parseStreamingFiles(
+  streamedCode: string,
+  existingFiles: Set<string>
+): { completedFiles: StreamingFile[]; currentFile: StreamingFile | null } {
+  const completedFiles: StreamingFile[] = [];
+  let currentFile: StreamingFile | null = null;
+
+  const fileRegex = /<file\s+path="([^"]+)">([\s\S]*?)<\/file>/g;
+  let match;
+  while ((match = fileRegex.exec(streamedCode)) !== null) {
+    const path = match[1].trim();
+    if (!existingFiles.has(path)) {
+      existingFiles.add(path);
+      completedFiles.push({
+        path,
+        content: match[2].trim(),
+        type: getFileType(path),
+        completed: true,
+      });
+    }
+  }
+
+  const partialMatch = streamedCode.match(/<file\s+path="([^"]+)">([\s\S]*)$/);
+  if (partialMatch && !partialMatch[0].includes("</file>")) {
+    const path = partialMatch[1].trim();
+    currentFile = {
+      path,
+      content: partialMatch[2],
+      type: getFileType(path),
+      completed: false,
+    };
+  }
+
+  return { completedFiles, currentFile };
 }
 
 const initialState: GenerationState = {
   isGenerating: false,
   isApplying: false,
+  isStreaming: false,
   progress: "",
   streamedCode: "",
   currentFile: null,
   files: [],
+  streamingFiles: [],
   packages: [],
   error: null,
 };
@@ -52,13 +118,17 @@ export function useGeneration() {
 
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
+    const processedFiles = new Set<string>();
 
     setState((prev) => ({
       ...prev,
       isGenerating: true,
+      isStreaming: false,
       progress: "Starting generation...",
       streamedCode: "",
+      currentFile: null,
       files: [],
+      streamingFiles: [],
       packages: [],
       error: null,
     }));
@@ -101,10 +171,26 @@ export function useGeneration() {
                 break;
 
               case "stream":
-                setState((prev) => ({
-                  ...prev,
-                  streamedCode: prev.streamedCode + event.data.content,
-                }));
+                setState((prev) => {
+                  const newStreamedCode = prev.streamedCode + event.data.content;
+                  const { completedFiles, currentFile } = parseStreamingFiles(
+                    newStreamedCode,
+                    processedFiles
+                  );
+
+                  return {
+                    ...prev,
+                    streamedCode: newStreamedCode,
+                    isStreaming: true,
+                    currentFile,
+                    streamingFiles: [...prev.streamingFiles, ...completedFiles],
+                    progress: currentFile
+                      ? `Generating ${currentFile.path}`
+                      : completedFiles.length > 0
+                      ? `Completed ${completedFiles[completedFiles.length - 1].path}`
+                      : prev.progress,
+                  };
+                });
                 onStream?.(event.data.content);
                 break;
 
@@ -113,7 +199,6 @@ export function useGeneration() {
                 collectedFiles.push(file);
                 setState((prev) => ({
                   ...prev,
-                  currentFile: file.path,
                   files: [...prev.files, file],
                 }));
                 onFile?.(file);
@@ -133,6 +218,7 @@ export function useGeneration() {
                 setState((prev) => ({
                   ...prev,
                   isGenerating: false,
+                  isStreaming: false,
                   progress: "Generation complete",
                   currentFile: null,
                 }));
@@ -155,6 +241,7 @@ export function useGeneration() {
       setState((prev) => ({
         ...prev,
         isGenerating: false,
+        isStreaming: false,
         error: message,
       }));
       onError?.(message);
@@ -253,3 +340,5 @@ export function useGeneration() {
     reset,
   };
 }
+
+export type { StreamingFile };
