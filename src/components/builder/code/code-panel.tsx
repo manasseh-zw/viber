@@ -19,7 +19,8 @@ export function CodePanel({
   streamingFiles = [],
 }: CodePanelProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [userSelectedDuringStream, setUserSelectedDuringStream] = useState(false);
+  const [userSelectedDuringStream, setUserSelectedDuringStream] =
+    useState(false);
   const wasStreamingRef = useRef(false);
 
   useEffect(() => {
@@ -49,14 +50,21 @@ export function CodePanel({
     [streamingFiles]
   );
 
-  const hasActiveStreaming = isStreaming && (currentFile || streamingFiles.length > 0);
+  const hasActiveStreaming =
+    isStreaming && (currentFile || streamingFiles.length > 0);
   const hasSandboxFiles = sandboxFileList.length > 0;
 
   const showStreamingView = hasActiveStreaming && !userSelectedDuringStream;
 
-  const fileList = hasActiveStreaming && !hasSandboxFiles
-    ? [...new Set([...(currentFile ? [currentFile.path] : []), ...streamingFileList])]
-    : sandboxFileList;
+  const fileList =
+    hasActiveStreaming && !hasSandboxFiles
+      ? [
+          ...new Set([
+            ...(currentFile ? [currentFile.path] : []),
+            ...streamingFileList,
+          ]),
+        ]
+      : sandboxFileList;
 
   const handleSelectFile = (path: string) => {
     setSelectedFile(path);
@@ -104,7 +112,6 @@ export function CodePanel({
         <StreamingCodeViewer
           currentFile={currentFile}
           completedFiles={streamingFiles}
-          isStreaming={isStreaming}
         />
       </div>
     );
@@ -112,7 +119,8 @@ export function CodePanel({
 
   const activeFilePath = selectedFile || currentFile?.path || fileList[0];
   const fileContent = activeFilePath ? getFileContent(activeFilePath) : null;
-  const isActiveFileStreaming = isStreaming && currentFile?.path === activeFilePath;
+  const isActiveFileStreaming =
+    isStreaming && currentFile?.path === activeFilePath;
 
   return (
     <div className="flex h-full">

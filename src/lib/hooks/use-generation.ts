@@ -134,11 +134,23 @@ export function useGeneration() {
     }));
 
     try {
+      console.log("[useGeneration] Starting generation request", {
+        prompt: prompt.substring(0, 100),
+        isEdit,
+        sandboxId,
+      });
+
       const response = await fetch("/api/generate/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, isEdit, sandboxId }),
         signal: abortControllerRef.current.signal,
+      });
+
+      console.log("[useGeneration] Response received", {
+        ok: response.ok,
+        status: response.status,
+        hasBody: !!response.body,
       });
 
       if (!response.ok || !response.body) {

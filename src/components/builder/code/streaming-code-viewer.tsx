@@ -9,7 +9,6 @@ import { codeToHtml, type BundledLanguage } from "shiki";
 interface StreamingCodeViewerProps {
   currentFile: StreamingFile | null;
   completedFiles: StreamingFile[];
-  isStreaming: boolean;
 }
 
 function getLanguage(fileName: string): BundledLanguage | "text" {
@@ -45,13 +44,75 @@ function escapeHtml(text: string): string {
 
 function CurrentFileBlock({ file }: { file: StreamingFile }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [highlightedCode, setHighlightedCode] = useState<string>("");
+  const [isHighlighting, setIsHighlighting] = useState(false);
   const lineCount = file.content.split("\n").length;
+  const prevContentRef = useRef<string>("");
 
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [file.content]);
+  }, [file.content, highlightedCode]);
+
+  useEffect(() => {
+    if (!file.content) {
+      setHighlightedCode("");
+      return;
+    }
+
+    if (file.content === prevContentRef.current && highlightedCode) {
+      return;
+    }
+    prevContentRef.current = file.content;
+
+    if (file.content.length < 100) {
+      setHighlightedCode(`<pre><code>${escapeHtml(file.content)}</code></pre>`);
+      setIsHighlighting(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsHighlighting(true);
+
+    const highlight = async () => {
+      try {
+        const lang = getLanguage(file.path);
+        if (lang === "text") {
+          if (!cancelled) {
+            setHighlightedCode(
+              `<pre><code>${escapeHtml(file.content)}</code></pre>`
+            );
+            setIsHighlighting(false);
+          }
+          return;
+        }
+        const html = await codeToHtml(file.content, {
+          lang,
+          theme: "github-dark-default",
+        });
+        if (!cancelled) {
+          setHighlightedCode(html);
+          setIsHighlighting(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setHighlightedCode(
+            `<pre><code>${escapeHtml(file.content)}</code></pre>`
+          );
+          setIsHighlighting(false);
+        }
+      }
+    };
+
+    const delay = 300;
+    const timeout = setTimeout(highlight, delay);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [file.content, file.path, highlightedCode]);
 
   return (
     <div className="rounded-lg overflow-hidden border-2 border-primary/50 ring-2 ring-primary/20 shadow-lg shadow-primary/10">
@@ -80,12 +141,27 @@ function CurrentFileBlock({ file }: { file: StreamingFile }) {
         ref={containerRef}
         className="bg-[#0d1117] overflow-auto max-h-[60vh] min-h-[200px]"
       >
-        <div className="relative">
-          <pre className="p-4 text-sm font-mono text-foreground/90 whitespace-pre-wrap break-words leading-relaxed">
-            <code>{file.content}</code>
-          </pre>
-          <span className="absolute bottom-4 right-4 inline-block w-2.5 h-6 bg-primary animate-pulse rounded-sm" />
-        </div>
+        {isHighlighting && !highlightedCode ? (
+          <div className="p-4">
+            <div className="space-y-2 animate-pulse">
+              {Array.from({ length: Math.min(lineCount, 8) }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-4 bg-muted/20 rounded"
+                  style={{ width: `${Math.random() * 60 + 20}%` }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="relative">
+            <div
+              className="code-viewer-content p-4 text-sm [&_pre]:bg-transparent! [&_pre]:m-0! [&_pre]:p-0! [&_code]:font-mono [&_.line]:leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: highlightedCode }}
+            />
+            <span className="absolute bottom-4 right-4 inline-block w-2.5 h-6 bg-primary animate-pulse rounded-sm" />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -184,7 +260,6 @@ function CompletedFileBlock({ file }: { file: StreamingFile }) {
 export function StreamingCodeViewer({
   currentFile,
   completedFiles,
-  isStreaming,
 }: StreamingCodeViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -215,16 +290,23 @@ export function StreamingCodeViewer({
     <div ref={containerRef} className="flex-1 overflow-auto p-4 space-y-3">
       {/* Current file being generated - shown at the top, fully expanded */}
       {currentFile && (
-        <CurrentFileBlock key={`current-${currentFile.path}`} file={currentFile} />
+        <CurrentFileBlock
+          key={`current-${currentFile.path}`}
+          file={currentFile}
+        />
       )}
 
       {/* Completed files below - collapsed by default */}
       {completedFiles.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <CheckCircleIcon weight="fill" className="size-3.5 text-green-500" />
+            <CheckCircleIcon
+              weight="fill"
+              className="size-3.5 text-green-500"
+            />
             <span className="font-medium">
-              {completedFiles.length} file{completedFiles.length !== 1 ? "s" : ""} completed
+              {completedFiles.length} file
+              {completedFiles.length !== 1 ? "s" : ""} completed
             </span>
             <div className="flex-1 h-px bg-border/50" />
           </div>

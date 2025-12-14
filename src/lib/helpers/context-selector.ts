@@ -1,7 +1,10 @@
 import type { FileManifest, EditIntent, EditType } from "../types/files";
 import { EditType as ET } from "../types/files";
-import { analyzeEditIntent } from "./intent-analyzer";
-import { getEditExamplesPrompt, getComponentPatternPrompt } from "./edit-examples";
+import { analyzeIntentWithLLM } from "./llm-intent-analyzer";
+import {
+  getEditExamplesPrompt,
+  getComponentPatternPrompt,
+} from "./edit-examples";
 
 export interface FileContext {
   primaryFiles: string[];
@@ -10,11 +13,21 @@ export interface FileContext {
   editIntent: EditIntent;
 }
 
-export function selectFilesForEdit(
+export async function selectFilesForEdit(
   userPrompt: string,
   manifest: FileManifest
-): FileContext {
-  const editIntent = analyzeEditIntent(userPrompt, manifest);
+): Promise<FileContext> {
+  console.log("[Context Selector] Starting file selection", {
+    prompt: userPrompt.substring(0, 100),
+    filesCount: Object.keys(manifest.files).length,
+    entryPoint: manifest.entryPoint,
+  });
+
+  const editIntent = await analyzeIntentWithLLM(userPrompt, manifest);
+
+  console.log("[Context Selector] Intent analysis complete", {
+    editIntent,
+  });
 
   const primaryFiles = editIntent.targetFiles;
   const allFiles = Object.keys(manifest.files);
@@ -30,8 +43,7 @@ export function selectFilesForEdit(
   }
 
   const tailwindConfig = allFiles.find(
-    (f) =>
-      f.endsWith("tailwind.config.js") || f.endsWith("tailwind.config.ts")
+    (f) => f.endsWith("tailwind.config.js") || f.endsWith("tailwind.config.ts")
   );
   if (tailwindConfig && !primaryFiles.includes(tailwindConfig)) {
     keyFiles.push(tailwindConfig);
@@ -62,12 +74,22 @@ export function selectFilesForEdit(
     manifest
   );
 
-  return {
+  const fileContext: FileContext = {
     primaryFiles,
     contextFiles,
     systemPrompt,
     editIntent,
   };
+
+  console.log("[Context Selector] File context prepared", {
+    primaryFilesCount: primaryFiles.length,
+    contextFilesCount: contextFiles.length,
+    systemPromptLength: systemPrompt.length,
+    primaryFiles,
+    contextFiles: contextFiles.slice(0, 5),
+  });
+
+  return fileContext;
 }
 
 function buildSystemPrompt(
@@ -320,7 +342,8 @@ ${content}
       let truncatedContent = content;
       if (content.length > 2000) {
         truncatedContent =
-          content.substring(0, 2000) + "\n// ... [truncated for context length]";
+          content.substring(0, 2000) +
+          "\n// ... [truncated for context length]";
       }
 
       sections.push(`### ${path}
@@ -346,4 +369,3 @@ function getFileExtension(path: string): string {
   };
   return mapping[ext] || ext;
 }
-

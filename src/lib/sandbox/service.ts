@@ -112,7 +112,8 @@ export async function getSandboxStatus(
 
 export async function applyFilesToSandbox(
   files: SandboxFile[],
-  sandboxId?: string
+  sandboxId?: string,
+  useMorphForEdits: boolean = true
 ): Promise<{ success: boolean; appliedFiles: string[]; error?: string }> {
   try {
     const provider = sandboxId
@@ -124,10 +125,53 @@ export async function applyFilesToSandbox(
     }
 
     const appliedFiles: string[] = [];
+    const { applyMorphEditToFile, isMorphAvailable } = await import(
+      "../helpers/morph-apply"
+    );
+
+    const morphAvailable = isMorphAvailable() && useMorphForEdits;
 
     for (const file of files) {
-      await provider.writeFile(file.path, file.content);
-      appliedFiles.push(file.path);
+      try {
+        const existingFiles = await provider.listFiles();
+        const fileExists = existingFiles.some(
+          (f) => f === file.path || f.endsWith(file.path)
+        );
+
+        if (fileExists && morphAvailable) {
+          console.log(
+            `[applyFilesToSandbox] Using Morph to merge edits for existing file: ${file.path}`
+          );
+          const morphResult = await applyMorphEditToFile({
+            provider,
+            targetPath: file.path,
+            instructions: `Apply the following changes to the file`,
+            updateSnippet: file.content,
+          });
+
+          if (morphResult.success) {
+            appliedFiles.push(file.path);
+            console.log(
+              `[applyFilesToSandbox] Morph successfully merged: ${file.path}`
+            );
+          } else {
+            console.warn(
+              `[applyFilesToSandbox] Morph failed, falling back to direct write: ${morphResult.error}`
+            );
+            await provider.writeFile(file.path, file.content);
+            appliedFiles.push(file.path);
+          }
+        } else {
+          await provider.writeFile(file.path, file.content);
+          appliedFiles.push(file.path);
+        }
+      } catch (fileError) {
+        console.error(
+          `[applyFilesToSandbox] Error applying file ${file.path}:`,
+          fileError
+        );
+        throw fileError;
+      }
     }
 
     return { success: true, appliedFiles };
@@ -206,4 +250,3 @@ export async function killSandbox(
     };
   }
 }
-

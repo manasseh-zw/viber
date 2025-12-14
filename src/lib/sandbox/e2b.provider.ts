@@ -231,15 +231,15 @@ package_json = {
         "preview": "vite preview"
     },
     "dependencies": {
-        "react": "^18.2.0",
-        "react-dom": "^18.2.0"
+        "react": "^19.2.3",
+        "react-dom": "^19.2.3",
+        "@phosphor-icons/react": "^2.1.10"
     },
     "devDependencies": {
-        "@vitejs/plugin-react": "^4.0.0",
-        "vite": "^4.3.9",
-        "tailwindcss": "^3.3.0",
-        "postcss": "^8.4.31",
-        "autoprefixer": "^10.4.16"
+        "@vitejs/plugin-react": "^5.0.4",
+        "vite": "^7.1.7",
+        "tailwindcss": "^4.0.6",
+        "@tailwindcss/vite": "^4.0.6"
     }
 }
 
@@ -249,9 +249,10 @@ print('✓ package.json')
 
 vite_config = """import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -265,32 +266,6 @@ with open('/home/user/app/vite.config.js', 'w') as f:
     f.write(vite_config)
 print('✓ vite.config.js')
 
-tailwind_config = """/** @type {import('tailwindcss').Config} */
-export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}"""
-
-with open('/home/user/app/tailwind.config.js', 'w') as f:
-    f.write(tailwind_config)
-print('✓ tailwind.config.js')
-
-postcss_config = """export default {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}"""
-
-with open('/home/user/app/postcss.config.js', 'w') as f:
-    f.write(postcss_config)
-print('✓ postcss.config.js')
 
 index_html = """<!DOCTYPE html>
 <html lang="en">
@@ -351,9 +326,7 @@ with open('/home/user/app/src/App.jsx', 'w') as f:
     f.write(app_jsx)
 print('✓ src/App.jsx')
 
-index_css = """@tailwind base;
-@tailwind components;
-@tailwind utilities;
+index_css = """@import "tailwindcss";
 
 @layer base {
   body {
@@ -423,8 +396,6 @@ print('Waiting for server to be ready...')
     this.existingFiles.add("index.html");
     this.existingFiles.add("package.json");
     this.existingFiles.add("vite.config.js");
-    this.existingFiles.add("tailwind.config.js");
-    this.existingFiles.add("postcss.config.js");
   }
 
   async restartViteServer(): Promise<void> {
