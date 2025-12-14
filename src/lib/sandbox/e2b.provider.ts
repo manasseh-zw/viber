@@ -326,12 +326,20 @@ print('✓ src/main.jsx')
 
 app_jsx = """function App() {
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-4">
-      <div className="text-center max-w-2xl">
-        <p className="text-lg text-gray-400">
-          Sandbox Ready<br/>
-          Start building your React app with Vite and Tailwind CSS!
-        </p>
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      <div className="text-center max-w-lg space-y-8">
+        <h1 className="text-6xl font-bold tracking-tighter text-black">
+          Viber<span className="text-orange-500">.</span>
+        </h1>
+        
+        <div className="space-y-2">
+          <p className="text-lg font-medium text-gray-900">
+            Workspace Ready
+          </p>
+          <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">
+            Describe what you want to build in the chat to get started.
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -347,9 +355,12 @@ index_css = """@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  background-color: rgb(17 24 39);
+@layer base {
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }"""
 
 with open('/home/user/app/src/index.css', 'w') as f:

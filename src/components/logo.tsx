@@ -1,7 +1,12 @@
 import type { SVGProps } from "react";
+import { cn } from "../lib/utils";
 
-export function Logo() {
-  return <h1 className="text-primary font-architype text-6xl">Viber.</h1>;
+export function Logo({ className }: { className?: string }) {
+  return (
+    <h1 className={cn("text-primary font-architype text-6xl", className)}>
+      Viber.
+    </h1>
+  );
 }
 
 export function LogoIcon(props: SVGProps<SVGSVGElement>) {

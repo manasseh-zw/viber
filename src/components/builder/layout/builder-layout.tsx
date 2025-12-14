@@ -22,9 +22,10 @@ export function BuilderLayout() {
       toast.success("Workspace ready", {
         description: "Your development environment is set up",
       });
+      sandbox.refreshFiles();
     }
     prevSandboxReady.current = sandbox.isReady;
-  }, [sandbox.isReady]);
+  }, [sandbox.isReady, sandbox.refreshFiles]);
 
   useEffect(() => {
     if (sandbox.error) {

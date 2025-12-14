@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogoIcon } from "@/components/logo";
+import { Logo, LogoIcon } from "@/components/logo";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { Button } from "@/components/ui/button";
 import { ChatMessages } from "../chat/chat-messages";
@@ -62,12 +62,9 @@ export function BuilderSidebar({
   return (
     <aside className="flex flex-col w-[400px] min-w-[400px] border-r border-border bg-sidebar">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
+      <header className="flex items-center justify-between px-4 py-[7px] border-b border-sidebar-border">
         <a href="/" className="flex items-center gap-2 group">
-          <LogoIcon className="w-6 h-8 text-primary transition-transform group-hover:scale-110" />
-          <span className="font-architype text-xl text-sidebar-foreground">
-            Viber
-          </span>
+          <Logo className="text-4xl"/>
         </a>
         <Button
           variant="ghost"
