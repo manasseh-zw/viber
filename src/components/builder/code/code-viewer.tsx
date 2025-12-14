@@ -140,7 +140,7 @@ export function CodeViewer({
           {isStreaming && (
             <CircleNotchIcon className="size-3.5 animate-spin text-primary" />
           )}
-          <span className="text-xs font-mono text-muted-foreground truncate">
+          <span className="text-xs font-mono text-foreground/90 truncate">
             {fileName}
           </span>
           {isStreaming && (

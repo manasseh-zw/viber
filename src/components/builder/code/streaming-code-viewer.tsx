@@ -125,7 +125,7 @@ function CurrentFileBlock({ file }: { file: StreamingFile }) {
               <span className="relative inline-flex rounded-full size-2 bg-primary" />
             </span>
           </div>
-          <span className="text-sm font-mono text-primary font-semibold">
+          <span className="text-sm font-mono text-foreground font-semibold">
             {file.path}
           </span>
           <span className="text-[10px] px-1.5 py-0.5 bg-primary text-primary-foreground rounded font-bold uppercase tracking-wide">
@@ -222,7 +222,7 @@ function CompletedFileBlock({ file }: { file: StreamingFile }) {
             <CaretRightIcon className="size-4 text-muted-foreground" />
           )}
           <CheckCircleIcon weight="fill" className="size-4 text-green-500" />
-          <span className="text-xs font-mono text-foreground/80">
+          <span className="text-xs font-mono text-gray-100 font-medium">
             {file.path}
           </span>
         </div>
@@ -263,11 +263,20 @@ export function StreamingCodeViewer({
 }: StreamingCodeViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll to bottom when content changes or new files are added
   useEffect(() => {
-    if (containerRef.current && currentFile) {
-      containerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    if (containerRef.current && (currentFile || completedFiles.length > 0)) {
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        if (containerRef.current) {
+          containerRef.current.scrollTo({
+            top: containerRef.current.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      });
     }
-  }, [currentFile?.path]);
+  }, [currentFile?.content, currentFile?.path, completedFiles.length]);
 
   if (!currentFile && completedFiles.length === 0) {
     return (
