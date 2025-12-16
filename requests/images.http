@@ -1,0 +1,9 @@
+### Basic landscape image
+GET http://localhost:3000/images?q=minimal%20desk%20workspace
+
+### Portrait black and white image
+GET http://localhost:3000/images?q=studio%20portrait%20of%20person&orientation=portrait&color=black_and_white
+
+### Colorful city skyline, teal accent
+GET http://localhost:3000/images?q=city%20skyline%20at%20sunset&orientation=landscape&color=teal
+

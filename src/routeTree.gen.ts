@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ImagesRouteImport } from './routes/images'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BuilderIndexRouteImport } from './routes/builder/index'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
@@ -20,6 +21,11 @@ import { Route as ApiPackagesInstallRouteImport } from './routes/api/packages/in
 import { Route as ApiGenerateStreamRouteImport } from './routes/api/generate/stream'
 import { Route as ApiApplyStreamRouteImport } from './routes/api/apply/stream'
 
+const ImagesRoute = ImagesRouteImport.update({
+  id: '/images',
+  path: '/images',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -73,6 +79,7 @@ const ApiApplyStreamRoute = ApiApplyStreamRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/images': typeof ImagesRoute
   '/api/health': typeof ApiHealthRoute
   '/builder': typeof BuilderIndexRoute
   '/api/apply/stream': typeof ApiApplyStreamRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/images': typeof ImagesRoute
   '/api/health': typeof ApiHealthRoute
   '/builder': typeof BuilderIndexRoute
   '/api/apply/stream': typeof ApiApplyStreamRoute
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/images': typeof ImagesRoute
   '/api/health': typeof ApiHealthRoute
   '/builder/': typeof BuilderIndexRoute
   '/api/apply/stream': typeof ApiApplyStreamRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/images'
     | '/api/health'
     | '/builder'
     | '/api/apply/stream'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/images'
     | '/api/health'
     | '/builder'
     | '/api/apply/stream'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/images'
     | '/api/health'
     | '/builder/'
     | '/api/apply/stream'
@@ -149,6 +161,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ImagesRoute: typeof ImagesRoute
   ApiHealthRoute: typeof ApiHealthRoute
   BuilderIndexRoute: typeof BuilderIndexRoute
   ApiApplyStreamRoute: typeof ApiApplyStreamRoute
@@ -162,6 +175,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/images': {
+      id: '/images'
+      path: '/images'
+      fullPath: '/images'
+      preLoaderRoute: typeof ImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -237,6 +257,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ImagesRoute: ImagesRoute,
   ApiHealthRoute: ApiHealthRoute,
   BuilderIndexRoute: BuilderIndexRoute,
   ApiApplyStreamRoute: ApiApplyStreamRoute,
