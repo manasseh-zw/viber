@@ -258,7 +258,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     hmr: false,
-    allowedHosts: ['.e2b.app', '.e2b.dev', '.vercel.run', 'localhost', '127.0.0.1']
+    allowedHosts: true
   }
 })"""
 
