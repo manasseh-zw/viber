@@ -1,4 +1,4 @@
-import { appEnv } from "../env";
+import { appEnv } from "../env/env.server";
 
 const IMAGE_ENDPOINT_BASE =
   appEnv.IMAGE_CDN_BASE_URL && appEnv.IMAGE_CDN_BASE_URL.length > 0

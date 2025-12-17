@@ -1,5 +1,5 @@
 import { Sandbox } from "@e2b/code-interpreter";
-import { appEnv } from "../env";
+import { appEnv } from "../env/env.server";
 import { appConfig } from "../config";
 import type {
   SandboxInfo,

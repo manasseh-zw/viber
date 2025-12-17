@@ -37,7 +37,7 @@ export const appEnv = {
   // Morph Fast Apply (Optional - for surgical edits)
   MORPH_API_KEY: optionalEnv("MORPH_API_KEY"),
 
-  // 11Labs Voice Agent
+  // elevenLabs Voice Agent
   ELEVENLABS_API_KEY: optionalEnv("ELEVENLABS_API_KEY"),
   ELEVENLABS_AGENT_ID: optionalEnv("ELEVENLABS_AGENT_ID"),
 

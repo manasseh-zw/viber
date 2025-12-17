@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { appEnv } from "../lib/env";
+import { appEnv } from "../lib/env/env.server";
 
 type UnsplashPhoto = {
   urls: {

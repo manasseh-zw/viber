@@ -1,5 +1,5 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { appEnv } from "../env";
+import { appEnv } from "../env/env.server";
 import { appConfig } from "../config";
 
 const googleClient = createGoogleGenerativeAI({

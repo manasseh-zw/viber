@@ -1,4 +1,4 @@
-import { appEnv } from "../env";
+import { appEnv } from "../env/env.server";
 import type { SandboxProvider } from "../types/sandbox";
 
 export interface MorphEditBlock {
