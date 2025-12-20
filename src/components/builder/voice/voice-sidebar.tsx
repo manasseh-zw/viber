@@ -1,20 +1,19 @@
 import { useState, useCallback } from "react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Plus } from "@phosphor-icons/react/dist/csr/Plus";
+import {
+  PlusIcon,
+  PhoneIcon,
+  PhoneDisconnectIcon,
+  MicrophoneIcon,
+  MicrophoneSlashIcon,
+  CircleNotchIcon,
+} from "@phosphor-icons/react";
 import { Orb } from "@/components/ui/orb";
 import { BarVisualizer } from "@/components/ui/bar-visualizer";
 import { VoiceAgent, useVoiceAgentControls } from "./voice-agent";
-import { AgentTranscript } from "./agent-transcript";
-import { VoiceControls } from "./voice-controls";
 import { cn } from "@/lib/utils";
 import type { GenerateOptions } from "@/lib/hooks/use-generation";
-
-interface AgentMessage {
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-}
 
 interface VoiceSidebarProps {
   onNavigate: (panel: "preview" | "code" | "files", file?: string) => void;
@@ -36,19 +35,12 @@ export function VoiceSidebar({
   isApplying,
 }: VoiceSidebarProps) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
-  const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isMuted, setIsMuted] = useState(false);
   const voiceControls = useVoiceAgentControls();
 
   const handleNewProject = () => {
     window.location.reload();
   };
-
-  const handleMessage = useCallback((message: AgentMessage) => {
-    if (message.role === "assistant") {
-      setMessages((prev) => [...prev, message]);
-    }
-  }, []);
 
   const handleConnect = useCallback(() => {
     voiceControls.startSession();
@@ -58,111 +50,147 @@ export function VoiceSidebar({
     voiceControls.endSession();
   }, [voiceControls]);
 
+  const isConnected = status === "connected";
+  const isConnecting = status === "connecting";
+
   const getAgentState = () => {
+    if (!isReady) return "thinking" as const;
     if (isGenerating || isApplying) return "thinking" as const;
-    if (status === "connected") return "listening" as const;
+    if (isConnected) return "listening" as const;
     return null;
   };
 
   const getVisualizerState = () => {
+    if (!isReady) return "connecting" as const;
     if (status === "connecting") return "connecting" as const;
     if (isGenerating || isApplying) return "thinking" as const;
-    if (status === "connected") return "listening" as const;
+    if (isConnected) return "listening" as const;
     return "connecting" as const;
   };
 
   return (
     <aside className="flex flex-col w-[400px] min-w-[400px] border-r border-border bg-sidebar">
-      <header className="flex items-center justify-between px-4 py-[7px] border-b border-sidebar-border">
+      <header className="flex items-center justify-between px-4 py-2 border-b border-sidebar-border">
         <a href="/" className="flex items-center gap-2">
           <Logo className="text-4xl" />
         </a>
         <div className="flex items-center gap-2">
-          <StatusIndicator status={status} />
+          <StatusIndicator status={status} isReady={isReady} />
+
+          {isConnected && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMuted(!isMuted)}
+              className={cn(
+                "size-8 rounded-full",
+                isMuted && "text-destructive hover:text-destructive"
+              )}
+            >
+              {isMuted ? (
+                <MicrophoneSlashIcon weight="fill" className="size-4" />
+              ) : (
+                <MicrophoneIcon weight="fill" className="size-4" />
+              )}
+            </Button>
+          )}
+
+          <Button
+            variant={isConnected ? "destructive" : "default"}
+            size="icon"
+            onClick={isConnected ? handleDisconnect : handleConnect}
+            disabled={isConnecting || !isReady}
+            className="size-8 rounded-full"
+          >
+            {isConnecting ? (
+              <CircleNotchIcon className="size-4 animate-spin" />
+            ) : isConnected ? (
+              <PhoneDisconnectIcon weight="fill" className="size-4" />
+            ) : (
+              <PhoneIcon weight="fill" className="size-4" />
+            )}
+          </Button>
+
           <Button
             variant="ghost"
             size="icon"
             onClick={handleNewProject}
             className="text-sidebar-foreground/70 hover:text-sidebar-foreground size-8"
           >
-            <Plus weight="bold" className="size-4" />
+            <PlusIcon weight="bold" className="size-4" />
           </Button>
         </div>
       </header>
 
-      <div
-        className={cn(
-          "flex items-center justify-center transition-all duration-500",
-          status === "connected" ? "h-32 py-4" : "flex-1 py-8"
-        )}
-      >
-        <Orb
-          className={cn(
-            "transition-all duration-500",
-            status === "connected" ? "size-24" : "size-48"
-          )}
-          getInputVolume={voiceControls.getInputVolume}
-          getOutputVolume={voiceControls.getOutputVolume}
-          agentState={getAgentState()}
-        />
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-56 h-56">
+          <Orb
+            className="w-full h-full"
+            getInputVolume={voiceControls.getInputVolume}
+            getOutputVolume={voiceControls.getOutputVolume}
+            agentState={getAgentState()}
+          />
+        </div>
       </div>
 
-      {status === "connected" && (
-        <AgentTranscript messages={messages} className="flex-1 min-h-0" />
-      )}
-
-      <div className="border-t border-sidebar-border p-4">
+      <div className="border-t border-sidebar-border px-6 py-4">
         <BarVisualizer
           state={getVisualizerState()}
-          barCount={12}
-          className="h-8 mb-4"
+          barCount={16}
+          minHeight={5}
+          maxHeight={40}
+          className="h-10"
           demo
-        />
-        <VoiceControls
-          status={status}
-          isMuted={isMuted}
-          onConnect={handleConnect}
-          onDisconnect={handleDisconnect}
-          onToggleMute={() => setIsMuted(!isMuted)}
         />
       </div>
 
       <VoiceAgent
         onStatusChange={setStatus}
-        onMessage={handleMessage}
+        onMessage={() => {}}
         onNavigate={onNavigate}
         onGenerate={onGenerate}
         sandboxId={sandboxId}
         isReady={isReady}
-        isMuted={isMuted}
       />
     </aside>
   );
 }
 
-function StatusIndicator({ status }: { status: ConnectionStatus }) {
+function StatusIndicator({
+  status,
+  isReady,
+}: {
+  status: ConnectionStatus;
+  isReady: boolean;
+}) {
+  const getText = () => {
+    if (!isReady) return "Setting up...";
+    if (status === "connected") return "Lisa is listening";
+    if (status === "connecting") return "Connecting...";
+    return "Ready";
+  };
+
+  const isActive = status === "connected" && isReady;
+  const isLoading = !isReady || status === "connecting";
+
   return (
     <div
       className={cn(
         "flex items-center gap-2 text-xs",
-        status === "connected" && "text-green-500",
-        status === "connecting" && "text-yellow-500",
-        status === "disconnected" && "text-muted-foreground"
+        isActive && "text-green-500",
+        isLoading && "text-yellow-500",
+        !isActive && !isLoading && "text-muted-foreground"
       )}
     >
       <div
         className={cn(
           "size-2 rounded-full",
-          status === "connected" && "bg-green-500",
-          status === "connecting" && "bg-yellow-500 animate-pulse",
-          status === "disconnected" && "bg-muted-foreground"
+          isActive && "bg-green-500",
+          isLoading && "bg-yellow-500 animate-pulse",
+          !isActive && !isLoading && "bg-muted-foreground"
         )}
       />
-      {status === "connected"
-        ? "Lisa is listening"
-        : status === "connecting"
-          ? "Connecting..."
-          : "Tap to start"}
+      {getText()}
     </div>
   );
 }

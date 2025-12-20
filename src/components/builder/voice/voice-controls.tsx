@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Microphone } from "@phosphor-icons/react/dist/csr/Microphone";
-import { MicrophoneSlash } from "@phosphor-icons/react/dist/csr/MicrophoneSlash";
-import { PhoneDisconnect } from "@phosphor-icons/react/dist/csr/PhoneDisconnect";
-import { Phone } from "@phosphor-icons/react/dist/csr/Phone";
-import { CircleNotch } from "@phosphor-icons/react/dist/csr/CircleNotch";
+import {
+  MicrophoneIcon,
+  MicrophoneSlashIcon,
+  PhoneDisconnectIcon,
+  PhoneIcon,
+  CircleNotchIcon,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 type ConnectionStatus = "disconnected" | "connecting" | "connected";
@@ -39,9 +41,9 @@ export function VoiceControls({
           )}
         >
           {isMuted ? (
-            <MicrophoneSlash weight="fill" className="size-5" />
+            <MicrophoneSlashIcon weight="fill" className="size-5" />
           ) : (
-            <Microphone weight="fill" className="size-5" />
+            <MicrophoneIcon weight="fill" className="size-5" />
           )}
         </Button>
       )}
@@ -57,11 +59,11 @@ export function VoiceControls({
         )}
       >
         {isConnecting ? (
-          <CircleNotch className="size-6 animate-spin" />
+          <CircleNotchIcon className="size-6 animate-spin" />
         ) : isConnected ? (
-          <PhoneDisconnect weight="fill" className="size-6" />
+          <PhoneDisconnectIcon weight="fill" className="size-6" />
         ) : (
-          <Phone weight="fill" className="size-6" />
+          <PhoneIcon weight="fill" className="size-6" />
         )}
       </Button>
 

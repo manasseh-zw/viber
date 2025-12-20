@@ -18,7 +18,16 @@ interface VoiceAgentProps {
   onGenerate: (options: GenerateOptions) => Promise<void>;
   sandboxId?: string;
   isReady: boolean;
-  isMuted: boolean;
+}
+
+interface VibeBuildParams {
+  prompt: string;
+  action: "create" | "edit";
+}
+
+interface NavigateUiParams {
+  panel: "preview" | "code" | "files";
+  file?: string;
 }
 
 let globalVoiceAgent: {
@@ -36,7 +45,6 @@ export function VoiceAgent({
   onGenerate,
   sandboxId,
   isReady,
-  isMuted,
 }: VoiceAgentProps) {
   const sandboxIdRef = useRef(sandboxId);
   const isReadyRef = useRef(isReady);
@@ -50,45 +58,55 @@ export function VoiceAgent({
 
   const conversation = useConversation({
     clientTools: {
-      vibe_build: async (params: {
-        prompt: string;
-        action: "create" | "edit";
-      }) => {
-        console.log("[VoiceAgent] vibe_build called:", params);
+      vibe_build: async ({ prompt, action }: VibeBuildParams) => {
+        console.log("[VoiceAgent] vibe_build called");
+        console.log("[VoiceAgent] prompt:", prompt);
+        console.log("[VoiceAgent] action:", action);
+        console.log("[VoiceAgent] sandboxId:", sandboxIdRef.current);
+        console.log("[VoiceAgent] isReady:", isReadyRef.current);
 
-        const isEdit = params.action === "edit" && isReadyRef.current;
+        if (!prompt) {
+          console.error("[VoiceAgent] Missing prompt parameter");
+          return "Error: Missing prompt parameter";
+        }
+
+        const isEdit = action === "edit" && isReadyRef.current;
 
         try {
           await onGenerateRef.current({
-            prompt: params.prompt,
+            prompt,
             isEdit,
             sandboxId: sandboxIdRef.current,
           });
-          return "Generation started successfully";
+          return "Generation started successfully. I will provide updates as files are created.";
         } catch (error) {
           console.error("[VoiceAgent] Generation error:", error);
           return `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
         }
       },
 
-      navigate_ui: (params: {
-        panel: "preview" | "code" | "files";
-        file?: string;
-      }) => {
-        console.log("[VoiceAgent] navigate_ui called:", params);
-        onNavigate(params.panel, params.file);
-        return `Switched to ${params.panel} view`;
+      navigate_ui: ({ panel, file }: NavigateUiParams) => {
+        console.log("[VoiceAgent] navigate_ui called");
+        console.log("[VoiceAgent] panel:", panel);
+        console.log("[VoiceAgent] file:", file);
+
+        onNavigate(panel, file);
+        return `Navigated to ${panel} view${file ? ` showing ${file}` : ""}`;
       },
     },
+
     onConnect: () => {
-      console.log("[VoiceAgent] Connected");
+      console.log("[VoiceAgent] Connected to ElevenLabs");
       onStatusChange("connected");
     },
+
     onDisconnect: () => {
-      console.log("[VoiceAgent] Disconnected");
+      console.log("[VoiceAgent] Disconnected from ElevenLabs");
       onStatusChange("disconnected");
     },
+
     onMessage: (message) => {
+      console.log("[VoiceAgent] Message:", message);
       if (message.message && message.source !== "user") {
         onMessage({
           role: "assistant",
@@ -97,9 +115,15 @@ export function VoiceAgent({
         });
       }
     },
+
     onError: (error) => {
       console.error("[VoiceAgent] Error:", error);
       onStatusChange("disconnected");
+    },
+
+    onUnhandledClientToolCall: (toolCall) => {
+      console.warn("[VoiceAgent] Unhandled tool call:", toolCall.tool_name);
+      console.warn("[VoiceAgent] Tool call details:", toolCall);
     },
   });
 
@@ -119,6 +143,7 @@ export function VoiceAgent({
         try {
           await conversation.startSession({
             agentId: AGENT_ID,
+            connectionType: "websocket",
           });
         } catch (error) {
           console.error("[VoiceAgent] Failed to start session:", error);
