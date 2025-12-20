@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, Suspense } from "react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -123,23 +123,32 @@ export function VoiceSidebar({
       </header>
 
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-56 h-56">
-          <Orb
-            className="w-full h-full"
-            getInputVolume={voiceControls.getInputVolume}
-            getOutputVolume={voiceControls.getOutputVolume}
-            agentState={getAgentState()}
-          />
+        <div className="w-50 h-50">
+          <Suspense
+            fallback={
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="w-32 h-32 rounded-full bg-primary/20 animate-pulse" />
+              </div>
+            }
+          >
+            <Orb
+              className="w-full h-full"
+              colors={["#FFF8F5", "#FF8C42"]}
+              getInputVolume={voiceControls.getInputVolume}
+              getOutputVolume={voiceControls.getOutputVolume}
+              agentState={getAgentState()}
+            />
+          </Suspense>
         </div>
       </div>
 
-      <div className="border-t border-sidebar-border px-6 py-4">
+      <div className="border-t border-sidebar-border">
         <BarVisualizer
           state={getVisualizerState()}
           barCount={16}
-          minHeight={5}
-          maxHeight={40}
-          className="h-10"
+          minHeight={10}
+          maxHeight={80}
+          className="h-16"
           demo
         />
       </div>
