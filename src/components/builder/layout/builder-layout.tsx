@@ -1,14 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useSandbox } from "@/lib/hooks/use-sandbox";
 import { useGeneration } from "@/lib/hooks/use-generation";
-import { BuilderSidebar } from "./builder-sidebar";
+import { VoiceSidebar, useVoiceAgentControls } from "../voice";
 import { BuilderMain } from "./builder-main";
 
 export function BuilderLayout() {
   const sandbox = useSandbox();
   const generation = useGeneration();
+  const voiceAgent = useVoiceAgentControls();
   const prevSandboxReady = useRef(false);
+  const prevGenerating = useRef(false);
   const prevApplying = useRef(false);
 
   useEffect(() => {
@@ -36,22 +38,62 @@ export function BuilderLayout() {
   }, [sandbox.error]);
 
   useEffect(() => {
-    if (generation.error) {
-      toast.error("Generation failed", {
-        description: generation.error,
-      });
+    if (generation.isGenerating && !prevGenerating.current) {
+      voiceAgent.sendSystemUpdate("Starting code generation...");
     }
-  }, [generation.error]);
+
+    if (generation.currentFile) {
+      voiceAgent.sendSystemUpdate(`Generating ${generation.currentFile.path}`);
+    }
+
+    if (
+      !generation.isGenerating &&
+      prevGenerating.current &&
+      generation.files.length > 0
+    ) {
+      voiceAgent.sendSystemUpdate(
+        `Generation complete: ${generation.files.length} files created`
+      );
+    }
+
+    prevGenerating.current = generation.isGenerating;
+  }, [
+    generation.isGenerating,
+    generation.currentFile,
+    generation.files.length,
+    voiceAgent,
+  ]);
 
   useEffect(() => {
-    if (prevApplying.current && !generation.isApplying && !generation.error) {
+    if (generation.isApplying && !prevApplying.current) {
+      voiceAgent.sendSystemUpdate("Applying code to sandbox...");
+    }
+
+    if (!generation.isApplying && prevApplying.current && !generation.error) {
+      voiceAgent.sendSystemUpdate(
+        "Code applied successfully! Your app is ready to preview."
+      );
       toast.success("Code applied", {
         description: `${generation.files.length} file(s) updated`,
       });
       sandbox.refreshFiles();
     }
+
     prevApplying.current = generation.isApplying;
-  }, [generation.isApplying]);
+  }, [
+    generation.isApplying,
+    generation.error,
+    generation.files.length,
+    voiceAgent,
+    sandbox,
+  ]);
+
+  useEffect(() => {
+    if (generation.error) {
+      voiceAgent.sendSystemUpdate(`Error: ${generation.error}`);
+      toast.error("Generation failed", { description: generation.error });
+    }
+  }, [generation.error, voiceAgent]);
 
   useEffect(() => {
     if (
@@ -66,35 +108,31 @@ export function BuilderLayout() {
         sandbox.sandboxId
       );
     }
-  }, [generation.isGenerating, generation.files.length]);
+  }, [generation.isGenerating, generation.files.length, sandbox.sandboxId]);
 
-  const handleSendMessage = async (message: string) => {
-    const isEdit = sandbox.isReady && Object.keys(sandbox.files).length > 0;
-    await generation.generate({
-      prompt: message,
-      isEdit,
-      sandboxId: sandbox.sandboxId ?? undefined,
-    });
-  };
+  const handleNavigate = useCallback(
+    (panel: "preview" | "code" | "files", file?: string) => {
+      console.log("[BuilderLayout] Navigate to:", panel, file);
+    },
+    []
+  );
 
-  const handleCancelGeneration = () => {
-    generation.cancel();
-    toast.info("Generation cancelled");
-  };
+  const handleGenerate = useCallback(
+    async (options: Parameters<typeof generation.generate>[0]) => {
+      await generation.generate(options);
+    },
+    [generation]
+  );
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background">
-      <BuilderSidebar
-        onSendMessage={handleSendMessage}
-        onCancelGeneration={handleCancelGeneration}
+      <VoiceSidebar
+        onNavigate={handleNavigate}
+        onGenerate={handleGenerate}
+        sandboxId={sandbox.sandboxId ?? undefined}
+        isReady={sandbox.isReady}
         isGenerating={generation.isGenerating}
         isApplying={generation.isApplying}
-        isSandboxCreating={sandbox.isCreating}
-        progress={generation.progress}
-        error={generation.error || sandbox.error}
-        currentFile={generation.currentFile?.path ?? null}
-        files={generation.files}
-        packages={generation.packages}
       />
       <BuilderMain
         sandboxUrl={sandbox.sandboxUrl}
