@@ -134,7 +134,7 @@ export function VoiceSidebar({
 
         <div className="mt-6 flex flex-col items-center gap-4">
           <Button
-            variant={isConnected ? "outline" : "secondary"}
+            variant={isConnected ? "outline" : "outline"}
             size="icon"
             onClick={isConnected ? handleDisconnect : handleConnect}
             disabled={isConnecting || !isReady}
@@ -159,7 +159,7 @@ export function VoiceSidebar({
 
       <BarVisualizer
         state={getVisualizerState()}
-        barCount={20}
+        barCount={36}
         minHeight={8}
         maxHeight={100}
         className="h-24"
