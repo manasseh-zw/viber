@@ -13,3 +13,11 @@ export {
 export { PreviewPanel, PreviewToolbar, SandboxIframe } from "./preview";
 
 export { CodePanel, FileTree, CodeViewer, StreamingCodeViewer } from "./code";
+
+export {
+  VoiceSidebar,
+  VoiceAgent,
+  useVoiceAgentControls,
+  AgentTranscript,
+  VoiceControls,
+} from "./voice";
