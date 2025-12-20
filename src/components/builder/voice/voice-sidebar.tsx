@@ -68,15 +68,22 @@ export function VoiceSidebar({
     return "connecting" as const;
   };
 
+  const getStatusText = () => {
+    if (!isReady) return "Setting up workspace...";
+    if (isGenerating) return "Generating code...";
+    if (isApplying) return "Applying changes...";
+    if (status === "connected") return "Lisa is listening";
+    if (status === "connecting") return "Connecting...";
+    return "Ready to start";
+  };
+
   return (
     <aside className="flex flex-col w-[400px] min-w-[400px] border-r border-border bg-sidebar">
-      <header className="flex items-center justify-between px-4 py-2 border-b border-sidebar-border">
+      <header className="flex items-center justify-between px-4 py-3">
         <a href="/" className="flex items-center gap-2">
           <Logo className="text-4xl" />
         </a>
         <div className="flex items-center gap-2">
-          <StatusIndicator status={status} isReady={isReady} />
-
           {isConnected && (
             <Button
               variant="ghost"
@@ -96,22 +103,6 @@ export function VoiceSidebar({
           )}
 
           <Button
-            variant={isConnected ? "destructive" : "default"}
-            size="icon"
-            onClick={isConnected ? handleDisconnect : handleConnect}
-            disabled={isConnecting || !isReady}
-            className="size-8 rounded-full"
-          >
-            {isConnecting ? (
-              <CircleNotchIcon className="size-4 animate-spin" />
-            ) : isConnected ? (
-              <PhoneDisconnectIcon weight="fill" className="size-4" />
-            ) : (
-              <PhoneIcon weight="fill" className="size-4" />
-            )}
-          </Button>
-
-          <Button
             variant="ghost"
             size="icon"
             onClick={handleNewProject}
@@ -122,8 +113,8 @@ export function VoiceSidebar({
         </div>
       </header>
 
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-50 h-50">
+      <div className="flex-1 flex flex-col items-center justify-center pb-12 px-8">
+        <div className="w-48 h-48">
           <Suspense
             fallback={
               <div className="w-full h-full flex items-center justify-center">
@@ -140,18 +131,40 @@ export function VoiceSidebar({
             />
           </Suspense>
         </div>
+
+        <div className="mt-6 flex flex-col items-center gap-4">
+          <Button
+            variant={isConnected ? "outline" : "secondary"}
+            size="icon"
+            onClick={isConnected ? handleDisconnect : handleConnect}
+            disabled={isConnecting || !isReady}
+            className={cn(
+              "size-12 rounded-full",
+              isConnected &&
+                "border-destructive text-destructive hover:bg-destructive/10"
+            )}
+          >
+            {isConnecting ? (
+              <CircleNotchIcon className="size-5 animate-spin" />
+            ) : isConnected ? (
+              <PhoneDisconnectIcon weight="fill" className="size-5" />
+            ) : (
+              <PhoneIcon weight="fill" className="size-5" />
+            )}
+          </Button>
+
+          <p className="text-sm text-muted-foreground">{getStatusText()}</p>
+        </div>
       </div>
 
-      <div className="border-t border-sidebar-border">
-        <BarVisualizer
-          state={getVisualizerState()}
-          barCount={16}
-          minHeight={10}
-          maxHeight={80}
-          className="h-16"
-          demo
-        />
-      </div>
+      <BarVisualizer
+        state={getVisualizerState()}
+        barCount={20}
+        minHeight={8}
+        maxHeight={100}
+        className="h-24"
+        demo
+      />
 
       <VoiceAgent
         onStatusChange={setStatus}
@@ -162,44 +175,5 @@ export function VoiceSidebar({
         isReady={isReady}
       />
     </aside>
-  );
-}
-
-function StatusIndicator({
-  status,
-  isReady,
-}: {
-  status: ConnectionStatus;
-  isReady: boolean;
-}) {
-  const getText = () => {
-    if (!isReady) return "Setting up...";
-    if (status === "connected") return "Lisa is listening";
-    if (status === "connecting") return "Connecting...";
-    return "Ready";
-  };
-
-  const isActive = status === "connected" && isReady;
-  const isLoading = !isReady || status === "connecting";
-
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-2 text-xs",
-        isActive && "text-green-500",
-        isLoading && "text-yellow-500",
-        !isActive && !isLoading && "text-muted-foreground"
-      )}
-    >
-      <div
-        className={cn(
-          "size-2 rounded-full",
-          isActive && "bg-green-500",
-          isLoading && "bg-yellow-500 animate-pulse",
-          !isActive && !isLoading && "bg-muted-foreground"
-        )}
-      />
-      {getText()}
-    </div>
   );
 }
