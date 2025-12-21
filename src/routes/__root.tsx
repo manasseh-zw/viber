@@ -4,13 +4,6 @@ import { Toaster } from "@/components/ui/sonner";
 import "../styles.css";
 
 const criticalCss = `
-  :root {
-    --background: oklch(0.9383 0.0042 236.4993);
-    --primary: oklch(0.6397 0.172 36.4421);
-  }
-  .dark {
-    --background: oklch(0.2598 0.0306 262.6666);
-  }
   body {
     margin: 0;
     background: var(--background);

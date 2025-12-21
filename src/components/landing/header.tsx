@@ -1,8 +1,7 @@
-import { GithubLogoIcon } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { Container } from "../container";
 import { Logo } from "../logo";
-import { Button } from "../ui/button";
+import { GithubButton } from "../ui/github-button";
 
 export function Header() {
   return (
@@ -19,18 +18,16 @@ export function Header() {
             </Link>
           </div>
           <div className="flex items-center gap-x-5 md:gap-x-8 animate-fade-up delay-200">
-            <a
-              href="https://github.com/manasseh-zw/viber"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-row gap-2 align-bottom "
-              aria-label="GitHub Repository"
-            >
-              <Button variant="link" size="lg" className="text-black">
-                <GithubLogoIcon className="size-5" />
-                <span className="text-base font-medium">Github</span>
-              </Button>
-            </a>
+            <GithubButton
+              repoUrl="https://github.com/manasseh-zw/viber"
+              size="lg"
+              variant="default"
+              className="rounded-none bg-foreground text-background hover:bg-foreground border-0"
+              label="Star on GitHub"
+              targetStars={0}
+              autoAnimate={false}
+              showStarIcon={false}
+            />
           </div>
         </nav>
       </Container>
