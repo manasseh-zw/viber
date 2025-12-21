@@ -124,7 +124,7 @@ export function VoiceSidebar({
           >
             <Orb
               className="w-full h-full"
-              colors={["#FFF8F5", "#FF8C42"]}
+              colors={["#FFF8F2", "#FF8C42"]}
               getInputVolume={voiceControls.getInputVolume}
               getOutputVolume={voiceControls.getOutputVolume}
               agentState={getAgentState()}
