@@ -1,17 +1,25 @@
+"use client";
+
+import { useEffect, useRef, useState, useMemo } from "react";
 import type { StreamingFile } from "@/lib/hooks/use-generation";
-import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
-import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
-import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
-import { CircleNotchIcon } from "@phosphor-icons/react/dist/csr/CircleNotch";
-import { useEffect, useRef, useState } from "react";
-import { codeToHtml, type BundledLanguage } from "shiki";
+import { CaretDown } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { CaretRight } from "@phosphor-icons/react/dist/csr/CaretRight";
+import { CheckCircle } from "@phosphor-icons/react/dist/csr/CheckCircle";
+import { CircleNotch } from "@phosphor-icons/react/dist/csr/CircleNotch";
+import type { BundledLanguage } from "shiki";
+import {
+  CodeBlock,
+  CodeBlockBody,
+  CodeBlockContent,
+  CodeBlockItem,
+} from "@/components/kibo-ui/code-block";
 
 interface StreamingCodeViewerProps {
   currentFile: StreamingFile | null;
   completedFiles: StreamingFile[];
 }
 
-function getLanguage(fileName: string): BundledLanguage | "text" {
+function getLanguage(fileName: string): BundledLanguage {
   const ext = fileName.split(".").pop()?.toLowerCase();
   switch (ext) {
     case "js":
@@ -29,97 +37,44 @@ function getLanguage(fileName: string): BundledLanguage | "text" {
     case "json":
       return "json";
     default:
-      return "text";
+      return "typescript";
   }
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }
 
 function CurrentFileBlock({ file }: { file: StreamingFile }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [highlightedCode, setHighlightedCode] = useState<string>("");
-  const [isHighlighting, setIsHighlighting] = useState(false);
+  const [syntaxHighlighting, setSyntaxHighlighting] = useState(false);
   const lineCount = file.content.split("\n").length;
-  const prevContentRef = useRef<string>("");
+  const language = getLanguage(file.path);
 
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  }, [file.content, highlightedCode]);
+  }, [file.content]);
 
   useEffect(() => {
-    if (!file.content) {
-      setHighlightedCode("");
-      return;
-    }
-
-    if (file.content === prevContentRef.current && highlightedCode) {
-      return;
-    }
-    prevContentRef.current = file.content;
-
     if (file.content.length < 100) {
-      setHighlightedCode(`<pre><code>${escapeHtml(file.content)}</code></pre>`);
-      setIsHighlighting(false);
+      setSyntaxHighlighting(false);
       return;
     }
+    const timeout = setTimeout(() => {
+      setSyntaxHighlighting(true);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [file.content]);
 
-    let cancelled = false;
-    setIsHighlighting(true);
-
-    const highlight = async () => {
-      try {
-        const lang = getLanguage(file.path);
-        if (lang === "text") {
-          if (!cancelled) {
-            setHighlightedCode(
-              `<pre><code>${escapeHtml(file.content)}</code></pre>`
-            );
-            setIsHighlighting(false);
-          }
-          return;
-        }
-        const html = await codeToHtml(file.content, {
-          lang,
-          theme: "github-dark-default",
-        });
-        if (!cancelled) {
-          setHighlightedCode(html);
-          setIsHighlighting(false);
-        }
-      } catch {
-        if (!cancelled) {
-          setHighlightedCode(
-            `<pre><code>${escapeHtml(file.content)}</code></pre>`
-          );
-          setIsHighlighting(false);
-        }
-      }
-    };
-
-    const delay = 300;
-    const timeout = setTimeout(highlight, delay);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timeout);
-    };
-  }, [file.content, file.path, highlightedCode]);
+  const data = useMemo(
+    () => [{ language, filename: file.path, code: file.content }],
+    [language, file.path, file.content]
+  );
 
   return (
     <div className="rounded-lg overflow-hidden border-2 border-primary/50 ring-2 ring-primary/20 shadow-lg shadow-primary/10">
       <div className="flex items-center justify-between px-4 py-3 bg-primary/10">
         <div className="flex items-center gap-2">
           <div className="relative">
-            <CircleNotchIcon className="size-5 text-primary animate-spin" />
+            <CircleNotch className="size-5 text-primary animate-spin" />
             <span className="absolute -top-0.5 -right-0.5 flex size-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex rounded-full size-2 bg-primary" />
@@ -139,29 +94,28 @@ function CurrentFileBlock({ file }: { file: StreamingFile }) {
 
       <div
         ref={containerRef}
-        className="bg-[#0d1117] overflow-auto max-h-[60vh] min-h-[200px]"
+        className="overflow-auto max-h-[60vh] min-h-[200px] bg-background"
       >
-        {isHighlighting && !highlightedCode ? (
-          <div className="p-4">
-            <div className="space-y-2 animate-pulse">
-              {Array.from({ length: Math.min(lineCount, 8) }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-4 bg-muted/20 rounded"
-                  style={{ width: `${Math.random() * 60 + 20}%` }}
-                />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="relative">
-            <div
-              className="code-viewer-content p-4 text-sm [&_pre]:bg-transparent! [&_pre]:m-0! [&_pre]:p-0! [&_code]:font-mono [&_.line]:leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: highlightedCode }}
-            />
-            <span className="absolute bottom-4 right-4 inline-block w-2.5 h-6 bg-primary animate-pulse rounded-sm" />
-          </div>
-        )}
+        <CodeBlock
+          key={file.path}
+          data={data}
+          defaultValue={language}
+          className="h-full rounded-none border-0"
+        >
+          <CodeBlockBody>
+            {() => (
+              <CodeBlockItem value={language} lineNumbers className="relative">
+                <CodeBlockContent
+                  language={language}
+                  syntaxHighlighting={syntaxHighlighting}
+                >
+                  {file.content}
+                </CodeBlockContent>
+                <span className="absolute bottom-4 right-4 inline-block w-2.5 h-6 bg-primary animate-pulse rounded-sm" />
+              </CodeBlockItem>
+            )}
+          </CodeBlockBody>
+        </CodeBlock>
       </div>
     </div>
   );
@@ -169,60 +123,28 @@ function CurrentFileBlock({ file }: { file: StreamingFile }) {
 
 function CompletedFileBlock({ file }: { file: StreamingFile }) {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [highlightedCode, setHighlightedCode] = useState<string>("");
   const lineCount = file.content.split("\n").length;
+  const language = getLanguage(file.path);
 
-  useEffect(() => {
-    if (!isExpanded || highlightedCode) return;
-
-    let cancelled = false;
-    const highlight = async () => {
-      try {
-        const lang = getLanguage(file.path);
-        if (lang === "text") {
-          if (!cancelled) {
-            setHighlightedCode(
-              `<pre><code>${escapeHtml(file.content)}</code></pre>`
-            );
-          }
-          return;
-        }
-        const html = await codeToHtml(file.content, {
-          lang,
-          theme: "github-dark-default",
-        });
-        if (!cancelled) {
-          setHighlightedCode(html);
-        }
-      } catch {
-        if (!cancelled) {
-          setHighlightedCode(
-            `<pre><code>${escapeHtml(file.content)}</code></pre>`
-          );
-        }
-      }
-    };
-
-    highlight();
-    return () => {
-      cancelled = true;
-    };
-  }, [isExpanded, file.content, file.path, highlightedCode]);
+  const data = useMemo(
+    () => [{ language, filename: file.path, code: file.content }],
+    [language, file.path, file.content]
+  );
 
   return (
-    <div className="rounded-lg overflow-hidden border border-border/50 bg-[#0d1117]/50">
+    <div className="rounded-lg overflow-hidden border border-border/50 bg-background/50">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-4 py-2 bg-[#161b22] hover:bg-[#1c2128] transition-colors"
+        className="w-full flex items-center justify-between px-4 py-2 bg-secondary/50 hover:bg-secondary/80 transition-colors"
       >
         <div className="flex items-center gap-2">
           {isExpanded ? (
-            <CaretDownIcon className="size-4 text-muted-foreground" />
+            <CaretDown className="size-4 text-muted-foreground" />
           ) : (
-            <CaretRightIcon className="size-4 text-muted-foreground" />
+            <CaretRight className="size-4 text-muted-foreground" />
           )}
-          <CheckCircleIcon weight="fill" className="size-4 text-green-500" />
-          <span className="text-xs font-mono text-gray-100 font-medium">
+          <CheckCircle weight="fill" className="size-4 text-green-500" />
+          <span className="text-xs font-mono text-foreground font-medium">
             {file.path}
           </span>
         </div>
@@ -232,25 +154,23 @@ function CompletedFileBlock({ file }: { file: StreamingFile }) {
       </button>
 
       {isExpanded && (
-        <div className="bg-[#0d1117] overflow-auto max-h-[300px] border-t border-border/30">
-          {highlightedCode ? (
-            <div
-              className="code-viewer-content p-4 text-sm [&_pre]:bg-transparent! [&_pre]:m-0! [&_pre]:p-0! [&_code]:font-mono [&_.line]:leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: highlightedCode }}
-            />
-          ) : (
-            <div className="p-4">
-              <div className="space-y-2 animate-pulse">
-                {Array.from({ length: Math.min(lineCount, 8) }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-4 bg-muted/20 rounded"
-                    style={{ width: `${Math.random() * 60 + 20}%` }}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+        <div className="overflow-auto max-h-[300px] border-t border-border/30">
+          <CodeBlock
+            key={file.path}
+            data={data}
+            defaultValue={language}
+            className="h-full rounded-none border-0"
+          >
+            <CodeBlockBody>
+              {() => (
+                <CodeBlockItem value={language} lineNumbers>
+                  <CodeBlockContent language={language}>
+                    {file.content}
+                  </CodeBlockContent>
+                </CodeBlockItem>
+              )}
+            </CodeBlockBody>
+          </CodeBlock>
         </div>
       )}
     </div>
@@ -263,10 +183,8 @@ export function StreamingCodeViewer({
 }: StreamingCodeViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when content changes or new files are added
   useEffect(() => {
     if (containerRef.current && (currentFile || completedFiles.length > 0)) {
-      // Use requestAnimationFrame to ensure DOM has updated
       requestAnimationFrame(() => {
         if (containerRef.current) {
           containerRef.current.scrollTo({
@@ -283,7 +201,7 @@ export function StreamingCodeViewer({
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <div className="text-center space-y-3">
           <div className="relative inline-flex">
-            <CircleNotchIcon className="size-10 animate-spin text-primary" />
+            <CircleNotch className="size-10 animate-spin text-primary" />
             <span className="absolute top-0 right-0 flex size-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex rounded-full size-3 bg-primary" />
@@ -297,7 +215,6 @@ export function StreamingCodeViewer({
 
   return (
     <div ref={containerRef} className="flex-1 overflow-auto p-4 space-y-3">
-      {/* Current file being generated - shown at the top, fully expanded */}
       {currentFile && (
         <CurrentFileBlock
           key={`current-${currentFile.path}`}
@@ -305,14 +222,10 @@ export function StreamingCodeViewer({
         />
       )}
 
-      {/* Completed files below - collapsed by default */}
       {completedFiles.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-            <CheckCircleIcon
-              weight="fill"
-              className="size-3.5 text-green-500"
-            />
+            <CheckCircle weight="fill" className="size-3.5 text-green-500" />
             <span className="font-medium">
               {completedFiles.length} file
               {completedFiles.length !== 1 ? "s" : ""} completed
