@@ -23,7 +23,7 @@ function App() {
           alt="Rick Rubin vibecoding"
           className="fixed left-0 z-0 pointer-events-none select-none animate-fade-in delay-800"
           style={{
-            maxHeight: "60vh",
+            maxHeight: "50vh",
             width: "auto",
             bottom: "-1%",
             maskImage: "linear-gradient(to right, black 60%, transparent 100%)",
@@ -36,8 +36,8 @@ function App() {
             Powered by
           </div>
           <div className="flex items-end gap-4 ">
-            <ElevenLabsLogo className="h-4 w-auto " />
-            <GeminiLogo className=" h-6 w-auto" />
+            <ElevenLabsLogo className="h-4 w-auto opacity-90" /> 
+            <GeminiLogo className=" h-7 w-auto" />
           </div>
         </div>
       </main>
