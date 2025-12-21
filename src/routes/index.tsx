@@ -15,13 +15,22 @@ function App() {
       <div className="page-loader">
         <LogoIcon className="w-16 h-20 text-primary" />
       </div>
-      <main className="relative min-h-screen">
+      <main className="relative min-h-screen grain-overlay">
+        <svg className="absolute w-0 h-0">
+          <filter id="grain">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.6"
+              stitchTiles="stitch"
+            />
+          </filter>
+        </svg>
         <Header />
         <Hero />
         <img
           src="/rick-rubin-min.png"
           alt="Rick Rubin vibecoding"
-          className="fixed left-0 z-0 pointer-events-none select-none animate-fade-in delay-800"
+          className="fixed left-0 z-[5] pointer-events-none select-none animate-fade-in delay-800"
           style={{
             maxHeight: "50vh",
             width: "auto",
@@ -36,7 +45,7 @@ function App() {
             Powered by
           </div>
           <div className="flex items-end gap-4 ">
-            <ElevenLabsLogo className="h-4 w-auto opacity-90" /> 
+            <ElevenLabsLogo className="h-4 w-auto opacity-90" />
             <GeminiLogo className=" h-7 w-auto" />
           </div>
         </div>
