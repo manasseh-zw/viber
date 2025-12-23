@@ -273,6 +273,9 @@ index_html = """<!DOCTYPE html>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sandbox App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet"> 
   </head>
   <body>
     <div id="root"></div>
@@ -301,20 +304,21 @@ print('✓ src/main.jsx')
 
 app_jsx = """function App() {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="text-center max-w-lg space-y-8">
-        <h1 className="text-6xl font-bold tracking-tighter text-black">
-          Viber<span className="text-orange-500">.</span>
+    <div className="min-h-screen bg-white relative flex items-center justify-center text-gray-900 overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64">
+        <div className="absolute inset-x-16 -bottom-24 h-64 rounded-full bg-gradient-to-t from-[#F57119] via-[#FF5C06] to-white blur-3xl opacity-80" />
+      </div>
+
+      <div className="relative text-center space-y-3">
+        <p className="text-[11px] uppercase tracking-[0.35em] text-[#18273C] font-semibold">
+          Workspace ready
+        </p>
+        <h1 className="text-3xl sm:text-4xl font-normal text-gray-800">
+          Ready to build
         </h1>
-        
-        <div className="space-y-2">
-          <p className="text-lg font-medium text-gray-900">
-            Workspace Ready
-          </p>
-          <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">
-            Describe what you want to build in the chat to get started.
-          </p>
-        </div>
+        <p className="text-sm sm:text-base text-gray-600 italic max-w-xs mx-auto">
+          You can start describing what you want to create.
+        </p>
       </div>
     </div>
   )
@@ -330,9 +334,11 @@ index_css = """@import "tailwindcss";
 
 @layer base {
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: "Lora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Oxygen, Ubuntu, Cantarell, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: #ffffff;
   }
 }"""
 

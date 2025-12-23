@@ -139,6 +139,7 @@ export function BuilderLayout() {
         isLoading={sandbox.isCreating}
         files={sandbox.files}
         onRefresh={() => sandbox.refreshFiles()}
+        isGenerating={generation.isGenerating}
         isStreaming={generation.isStreaming}
         currentFile={generation.currentFile}
         streamingFiles={generation.streamingFiles}
