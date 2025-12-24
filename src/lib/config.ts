@@ -4,8 +4,8 @@ export const appConfig = {
     snapshotName: "viber-workspace-template",
     workingDirectory: "/home/daytona/app",
     devPort: 3000,
-    devStartupDelay: 2000,
-    devRestartDelay: 1500,
+    devStartupDelay: 5000,
+    devRestartDelay: 3000,
   },
 
   // E2B Sandbox Configuration (Legacy - for rollback)

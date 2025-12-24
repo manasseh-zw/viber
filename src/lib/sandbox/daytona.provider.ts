@@ -28,9 +28,10 @@ export class DaytonaProvider extends SandboxProvider {
     try {
       this.sandbox = await this.daytona.get(sandboxId);
       const preview = await this.sandbox.getPreviewLink(DEV_PORT);
+      const previewUrl = this.buildPreviewUrl(preview.url, preview.token);
       this.sandboxInfo = {
         sandboxId: this.sandbox.id,
-        url: preview.url,
+        url: previewUrl,
         provider: "daytona",
         createdAt: new Date(),
       };
@@ -40,6 +41,13 @@ export class DaytonaProvider extends SandboxProvider {
     }
   }
 
+  private buildPreviewUrl(baseUrl: string, token?: string): string {
+    if (!token) return baseUrl;
+    const url = new URL(baseUrl);
+    url.searchParams.set("tkn", token);
+    return url.toString();
+  }
+
   async createSandbox(): Promise<SandboxInfo> {
     if (this.sandbox) {
       await this.terminate();
@@ -47,13 +55,15 @@ export class DaytonaProvider extends SandboxProvider {
 
     this.sandbox = await this.daytona.create({
       snapshot: SNAPSHOT_NAME,
+      public: true,
     });
 
     const preview = await this.sandbox.getPreviewLink(DEV_PORT);
+    const previewUrl = this.buildPreviewUrl(preview.url, preview.token);
 
     this.sandboxInfo = {
       sandboxId: this.sandbox.id,
-      url: preview.url,
+      url: previewUrl,
       provider: "daytona",
       createdAt: new Date(),
     };
@@ -103,14 +113,25 @@ export class DaytonaProvider extends SandboxProvider {
       throw new Error("No active sandbox");
     }
 
-    const files = await this.sandbox.fs.listFiles(directory);
-    const excludePatterns = ["node_modules", ".git", "dist", "build"];
+    const excludePatterns = [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      "bun.lock",
+    ];
 
-    return files
-      .filter(
-        (f) => !excludePatterns.some((pattern) => f.name.includes(pattern))
-      )
-      .map((f) => f.name);
+    const result = await this.sandbox.process.executeCommand(
+      `find . -type f | grep -v -E '(node_modules|.git|dist|build|bun.lock)' | sed 's|^\\./||'`,
+      directory
+    );
+
+    if (!result.result) return [];
+
+    return result.result
+      .split("\n")
+      .filter((line) => line.trim() !== "")
+      .filter((f) => !excludePatterns.some((pattern) => f.includes(pattern)));
   }
 
   async installPackages(packages: string[]): Promise<CommandResult> {
@@ -133,6 +154,89 @@ export class DaytonaProvider extends SandboxProvider {
       throw new Error("No active sandbox");
     }
 
+    // Create src directory first
+    await this.sandbox.process.executeCommand(
+      `mkdir -p ${WORKING_DIR}/src`,
+      WORKING_DIR
+    );
+
+    // Create the same files as E2B provider for consistency
+    await this.writeFile(
+      "index.html",
+      `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sandbox App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>`
+    );
+
+    await this.writeFile(
+      "src/index.tsx",
+      `import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)`
+    );
+
+    await this.writeFile(
+      "src/App.tsx",
+      `function App() {
+  return (
+    <div className="min-h-screen bg-white relative flex items-center justify-center text-gray-900 overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64">
+        <div className="absolute inset-x-16 -bottom-24 h-64 rounded-full bg-gradient-to-t from-[#F57119] via-[#FF5C06] to-white blur-3xl opacity-80" />
+      </div>
+
+      <div className="relative text-center space-y-3">
+        <p className="text-[11px] uppercase tracking-[0.35em] text-[#18273C] font-semibold">
+          Workspace ready
+        </p>
+        <h1 className="text-3xl sm:text-4xl font-normal text-gray-800">
+          Ready to build
+        </h1>
+        <p className="text-sm sm:text-base text-gray-600 italic max-w-xs mx-auto">
+          You can start describing what you want to create.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export default App`
+    );
+
+    await this.writeFile(
+      "src/index.css",
+      `@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: "Lora", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Oxygen, Ubuntu, Cantarell, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #ffffff;
+  }
+}`
+    );
+
+    // Start Bun dev server
     await this.sandbox.process.createSession(DEV_SESSION_ID);
 
     await this.sandbox.process.executeSessionCommand(DEV_SESSION_ID, {
