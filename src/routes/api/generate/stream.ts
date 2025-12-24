@@ -33,14 +33,18 @@ export const Route = createFileRoute("/api/generate/stream")({
           isEdit,
           sandboxId,
           hasContext: !!context,
-          contextFilesCount: context?.files ? Object.keys(context.files).length : 0,
+          contextFilesCount: context?.files
+            ? Object.keys(context.files).length
+            : 0,
           recentMessagesCount: context?.recentMessages?.length || 0,
         });
 
         let fileContext = context?.files;
 
         if (isEdit && sandboxId && !fileContext) {
-          console.log("[api/generate/stream] Fetching files from sandbox", { sandboxId });
+          console.log("[api/generate/stream] Fetching files from sandbox", {
+            sandboxId,
+          });
           try {
             const filesResult = await getSandboxFiles(sandboxId);
             if (filesResult.success && filesResult.files) {
@@ -50,23 +54,42 @@ export const Route = createFileRoute("/api/generate/stream")({
                 files: Object.keys(fileContext),
               });
             } else {
-              console.warn("[api/generate/stream] Failed to fetch sandbox files", {
-                error: filesResult.error,
-              });
+              console.warn(
+                "[api/generate/stream] Failed to fetch sandbox files",
+                {
+                  error: filesResult.error,
+                }
+              );
             }
           } catch (error) {
-            console.error("[api/generate/stream] Error fetching sandbox files", error);
+            console.error(
+              "[api/generate/stream] Error fetching sandbox files",
+              error
+            );
           }
         }
 
         const encoder = new TextEncoder();
+        const abortController = new AbortController();
+
+        request.signal.addEventListener("abort", () => {
+          console.log("[api/generate/stream] Client disconnected");
+          abortController.abort();
+        });
 
         const stream = new ReadableStream({
           async start(controller) {
+            let isClosed = false;
+
             const send = (data: object) => {
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
-              );
+              if (isClosed || abortController.signal.aborted) return;
+              try {
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
+                );
+              } catch {
+                isClosed = true;
+              }
             };
 
             try {
@@ -84,13 +107,32 @@ export const Route = createFileRoute("/api/generate/stream")({
 
               let eventCount = 0;
               for await (const event of generator) {
+                if (abortController.signal.aborted) {
+                  console.log(
+                    "[api/generate/stream] Aborting due to client disconnect"
+                  );
+                  break;
+                }
+
                 eventCount++;
-                if (eventCount % 5 === 0 || event.type === "file" || event.type === "complete" || event.type === "error") {
+                if (
+                  eventCount % 5 === 0 ||
+                  event.type === "file" ||
+                  event.type === "complete" ||
+                  event.type === "error"
+                ) {
                   console.log("[api/generate/stream] Event emitted", {
                     eventCount,
                     type: event.type,
-                    ...(event.type === "file" && "data" in event ? { filePath: event.data.path } : {}),
-                    ...(event.type === "complete" && "data" in event ? { filesCount: event.data.files.length, packagesCount: event.data.packages.length } : {}),
+                    ...(event.type === "file" && "data" in event
+                      ? { filePath: event.data.path }
+                      : {}),
+                    ...(event.type === "complete" && "data" in event
+                      ? {
+                          filesCount: event.data.files.length,
+                          packagesCount: event.data.packages.length,
+                        }
+                      : {}),
                   });
                 }
                 send(event);
@@ -100,17 +142,24 @@ export const Route = createFileRoute("/api/generate/stream")({
                 totalEvents: eventCount,
               });
             } catch (error) {
-              console.error("[api/generate/stream] Stream error", {
-                error: error instanceof Error ? error.message : String(error),
-                stack: error instanceof Error ? error.stack : undefined,
-              });
-              send({
-                type: "error",
-                message:
-                  error instanceof Error ? error.message : "Unknown error",
-              });
+              if (!abortController.signal.aborted) {
+                console.error("[api/generate/stream] Stream error", {
+                  error: error instanceof Error ? error.message : String(error),
+                  stack: error instanceof Error ? error.stack : undefined,
+                });
+                send({
+                  type: "error",
+                  message:
+                    error instanceof Error ? error.message : "Unknown error",
+                });
+              }
             } finally {
-              controller.close();
+              isClosed = true;
+              try {
+                controller.close();
+              } catch {
+                // Already closed
+              }
             }
           },
         });
