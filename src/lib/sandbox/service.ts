@@ -1,6 +1,6 @@
 import { sandboxManager } from "./manager";
-import { SandboxFactory } from "./factory";
-import type { SandboxInfo, SandboxFile } from "./types";
+import { createSandbox } from "./factory";
+import type { SandboxInfo, SandboxFile } from "../types/sandbox";
 
 export interface CreateSandboxResult {
   success: boolean;
@@ -27,16 +27,16 @@ export async function createNewSandbox(): Promise<CreateSandboxResult> {
   try {
     await sandboxManager.terminateAll();
 
-    const provider = SandboxFactory.create();
-    const sandboxInfo: SandboxInfo = await provider.createSandbox();
-    await provider.setupViteApp();
+    const sandbox = createSandbox();
+    const info: SandboxInfo = await sandbox.create();
+    await sandbox.setupApp();
 
-    sandboxManager.registerSandbox(sandboxInfo.sandboxId, provider);
+    sandboxManager.register(info.sandboxId, sandbox);
 
     return {
       success: true,
-      sandboxId: sandboxInfo.sandboxId,
-      url: sandboxInfo.url,
+      sandboxId: info.sandboxId,
+      url: info.url,
     };
   } catch (error) {
     console.error("Error creating sandbox:", error);
@@ -51,20 +51,20 @@ export async function getSandboxFiles(
   sandboxId?: string
 ): Promise<SandboxFilesResult> {
   try {
-    const provider = sandboxId
-      ? sandboxManager.getProvider(sandboxId)
-      : sandboxManager.getActiveProvider();
+    const sandbox = sandboxId
+      ? sandboxManager.get(sandboxId)
+      : sandboxManager.getActive();
 
-    if (!provider) {
+    if (!sandbox) {
       return { success: false, error: "No active sandbox" };
     }
 
-    const fileList = await provider.listFiles();
+    const fileList = await sandbox.files();
     const fileContents: Record<string, string> = {};
 
     for (const file of fileList) {
       try {
-        fileContents[file] = await provider.readFile(file);
+        fileContents[file] = await sandbox.read(file);
       } catch {
         // Skip unreadable files
       }
@@ -89,15 +89,15 @@ export async function getSandboxStatus(
       return { success: false, error: "No active sandbox" };
     }
 
-    const provider = sandboxManager.getProvider(id);
-    if (!provider) {
+    const sandbox = sandboxManager.get(id);
+    if (!sandbox) {
       return { success: false, error: "Sandbox not found" };
     }
 
-    const info = provider.getSandboxInfo();
+    const info = sandbox.getInfo();
     return {
       success: true,
-      isAlive: provider.isAlive(),
+      isAlive: sandbox.isActive(),
       sandboxId: id,
       url: info?.url,
     };
@@ -116,11 +116,11 @@ export async function applyFilesToSandbox(
   useMorphForEdits: boolean = true
 ): Promise<{ success: boolean; appliedFiles: string[]; error?: string }> {
   try {
-    const provider = sandboxId
-      ? sandboxManager.getProvider(sandboxId)
-      : sandboxManager.getActiveProvider();
+    const sandbox = sandboxId
+      ? sandboxManager.get(sandboxId)
+      : sandboxManager.getActive();
 
-    if (!provider) {
+    if (!sandbox) {
       return { success: false, appliedFiles: [], error: "No active sandbox" };
     }
 
@@ -133,7 +133,7 @@ export async function applyFilesToSandbox(
 
     for (const file of files) {
       try {
-        const existingFiles = await provider.listFiles();
+        const existingFiles = await sandbox.files();
         const fileExists = existingFiles.some(
           (f) => f === file.path || f.endsWith(file.path)
         );
@@ -143,7 +143,7 @@ export async function applyFilesToSandbox(
             `[applyFilesToSandbox] Using Morph to merge edits for existing file: ${file.path}`
           );
           const morphResult = await applyMorphEditToFile({
-            provider,
+            sandbox,
             targetPath: file.path,
             instructions: `Apply the following changes to the file`,
             updateSnippet: file.content,
@@ -158,11 +158,11 @@ export async function applyFilesToSandbox(
             console.warn(
               `[applyFilesToSandbox] Morph failed, falling back to direct write: ${morphResult.error}`
             );
-            await provider.writeFile(file.path, file.content);
+            await sandbox.write(file.path, file.content);
             appliedFiles.push(file.path);
           }
         } else {
-          await provider.writeFile(file.path, file.content);
+          await sandbox.write(file.path, file.content);
           appliedFiles.push(file.path);
         }
       } catch (fileError) {
@@ -190,15 +190,15 @@ export async function installPackages(
   sandboxId?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const provider = sandboxId
-      ? sandboxManager.getProvider(sandboxId)
-      : sandboxManager.getActiveProvider();
+    const sandbox = sandboxId
+      ? sandboxManager.get(sandboxId)
+      : sandboxManager.getActive();
 
-    if (!provider) {
+    if (!sandbox) {
       return { success: false, error: "No active sandbox" };
     }
 
-    const result = await provider.installPackages(packages);
+    const result = await sandbox.install(packages);
     return { success: result.success, error: result.stderr || undefined };
   } catch (error) {
     console.error("Error installing packages:", error);
@@ -213,15 +213,15 @@ export async function restartSandbox(
   sandboxId?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const provider = sandboxId
-      ? sandboxManager.getProvider(sandboxId)
-      : sandboxManager.getActiveProvider();
+    const sandbox = sandboxId
+      ? sandboxManager.get(sandboxId)
+      : sandboxManager.getActive();
 
-    if (!provider) {
+    if (!sandbox) {
       return { success: false, error: "No active sandbox" };
     }
 
-    await provider.restartViteServer();
+    await sandbox.restartDevServer();
     return { success: true };
   } catch (error) {
     console.error("Error restarting sandbox:", error);
@@ -237,7 +237,7 @@ export async function killSandbox(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (sandboxId) {
-      await sandboxManager.terminateSandbox(sandboxId);
+      await sandboxManager.terminate(sandboxId);
     } else {
       await sandboxManager.terminateAll();
     }

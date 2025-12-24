@@ -1,12 +1,7 @@
 import { Daytona, Sandbox } from "@daytonaio/sdk";
 import { appEnv } from "../env/env.server";
 import { appConfig } from "../config";
-import type {
-  SandboxInfo,
-  CommandResult,
-  SandboxProviderConfig,
-} from "./types";
-import { SandboxProvider } from "./types";
+import type { SandboxInfo, CommandResult } from "../types/sandbox";
 
 const SNAPSHOT_NAME = appConfig.daytona.snapshotName;
 const WORKING_DIR = appConfig.daytona.workingDirectory;
@@ -14,33 +9,30 @@ const DEV_PORT = appConfig.daytona.devPort;
 const DEV_SESSION_ID = "bun-dev-server";
 const PREVIEW_PROXY_DOMAIN = appConfig.daytona.previewProxyDomain;
 
-export class DaytonaProvider extends SandboxProvider {
+export class DaytonaSandbox {
   private daytona: Daytona;
-  protected override sandbox: Sandbox | null = null;
+  private sandbox: Sandbox | null = null;
+  private info: SandboxInfo | null = null;
 
-  constructor(config: SandboxProviderConfig = {}) {
-    super(config);
+  constructor(apiKey?: string) {
     this.daytona = new Daytona({
-      apiKey: config.apiKey || appEnv.DAYTONA_API_KEY,
+      apiKey: apiKey || appEnv.DAYTONA_API_KEY,
     });
   }
 
   private buildPreviewUrl(sandboxId: string): string {
     if (PREVIEW_PROXY_DOMAIN) {
-      // Use custom proxy: https://{port}-{sandboxId}.preview.viber.lol
       return `https://${DEV_PORT}-${sandboxId}.${PREVIEW_PROXY_DOMAIN}`;
     }
-    // Fallback to default Daytona preview URL
     return `https://${DEV_PORT}-${sandboxId}.proxy.daytona.works`;
   }
 
   async reconnect(sandboxId: string): Promise<boolean> {
     try {
       this.sandbox = await this.daytona.get(sandboxId);
-      this.sandboxInfo = {
+      this.info = {
         sandboxId: this.sandbox.id,
         url: this.buildPreviewUrl(this.sandbox.id),
-        provider: "daytona",
         createdAt: new Date(),
       };
       return true;
@@ -49,9 +41,9 @@ export class DaytonaProvider extends SandboxProvider {
     }
   }
 
-  async createSandbox(): Promise<SandboxInfo> {
+  async create(): Promise<SandboxInfo> {
     if (this.sandbox) {
-      await this.terminate();
+      await this.destroy();
     }
 
     this.sandbox = await this.daytona.create({
@@ -61,17 +53,16 @@ export class DaytonaProvider extends SandboxProvider {
       autoDeleteInterval: appConfig.daytona.autoDeleteIntervalMinutes,
     });
 
-    this.sandboxInfo = {
+    this.info = {
       sandboxId: this.sandbox.id,
       url: this.buildPreviewUrl(this.sandbox.id),
-      provider: "daytona",
       createdAt: new Date(),
     };
 
-    return this.sandboxInfo;
+    return this.info;
   }
 
-  async runCommand(command: string): Promise<CommandResult> {
+  async exec(command: string): Promise<CommandResult> {
     if (!this.sandbox) {
       throw new Error("No active sandbox");
     }
@@ -89,7 +80,7 @@ export class DaytonaProvider extends SandboxProvider {
     };
   }
 
-  async writeFile(path: string, content: string): Promise<void> {
+  async write(path: string, content: string): Promise<void> {
     if (!this.sandbox) {
       throw new Error("No active sandbox");
     }
@@ -98,7 +89,7 @@ export class DaytonaProvider extends SandboxProvider {
     await this.sandbox.fs.uploadFile(Buffer.from(content), fullPath);
   }
 
-  async readFile(path: string): Promise<string> {
+  async read(path: string): Promise<string> {
     if (!this.sandbox) {
       throw new Error("No active sandbox");
     }
@@ -108,7 +99,7 @@ export class DaytonaProvider extends SandboxProvider {
     return content.toString();
   }
 
-  async listFiles(directory: string = WORKING_DIR): Promise<string[]> {
+  async files(directory: string = WORKING_DIR): Promise<string[]> {
     if (!this.sandbox) {
       throw new Error("No active sandbox");
     }
@@ -134,34 +125,31 @@ export class DaytonaProvider extends SandboxProvider {
       .filter((f) => !excludePatterns.some((pattern) => f.includes(pattern)));
   }
 
-  async installPackages(packages: string[]): Promise<CommandResult> {
+  async install(packages: string[]): Promise<CommandResult> {
     if (!this.sandbox) {
       throw new Error("No active sandbox");
     }
 
-    const command = `bun add ${packages.join(" ")}`;
-    const result = await this.runCommand(command);
+    const result = await this.exec(`bun add ${packages.join(" ")}`);
 
     if (result.success && appConfig.packages.autoRestartVite) {
-      await this.restartViteServer();
+      await this.restartDevServer();
     }
 
     return result;
   }
 
-  async setupViteApp(): Promise<void> {
+  async setupApp(): Promise<void> {
     if (!this.sandbox) {
       throw new Error("No active sandbox");
     }
 
-    // Create src directory first
     await this.sandbox.process.executeCommand(
       `mkdir -p ${WORKING_DIR}/src`,
       WORKING_DIR
     );
 
-    // Create the same files as E2B provider for consistency
-    await this.writeFile(
+    await this.write(
       "index.html",
       `<!DOCTYPE html>
 <html lang="en">
@@ -180,7 +168,7 @@ export class DaytonaProvider extends SandboxProvider {
 </html>`
     );
 
-    await this.writeFile(
+    await this.write(
       "src/index.tsx",
       `import React from 'react'
 import ReactDOM from 'react-dom/client'
@@ -194,7 +182,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 )`
     );
 
-    await this.writeFile(
+    await this.write(
       "src/App.tsx",
       `function App() {
   return (
@@ -221,7 +209,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 export default App`
     );
 
-    await this.writeFile(
+    await this.write(
       "src/index.css",
       `@import "tailwindcss";
 
@@ -236,7 +224,6 @@ export default App`
 }`
     );
 
-    // Start Bun dev server
     await this.sandbox.process.createSession(DEV_SESSION_ID);
 
     await this.sandbox.process.executeSessionCommand(DEV_SESSION_ID, {
@@ -249,7 +236,7 @@ export default App`
     );
   }
 
-  async restartViteServer(): Promise<void> {
+  async restartDevServer(): Promise<void> {
     if (!this.sandbox) {
       throw new Error("No active sandbox");
     }
@@ -272,27 +259,27 @@ export default App`
     );
   }
 
-  getSandboxUrl(): string | null {
-    return this.sandboxInfo?.url || null;
+  getUrl(): string | null {
+    return this.info?.url || null;
   }
 
-  getSandboxInfo(): SandboxInfo | null {
-    return this.sandboxInfo;
+  getInfo(): SandboxInfo | null {
+    return this.info;
   }
 
-  async terminate(): Promise<void> {
+  async destroy(): Promise<void> {
     if (this.sandbox) {
       try {
         await this.sandbox.delete();
       } catch (e) {
-        console.error("Failed to terminate sandbox:", e);
+        console.error("Failed to destroy sandbox:", e);
       }
       this.sandbox = null;
-      this.sandboxInfo = null;
+      this.info = null;
     }
   }
 
-  isAlive(): boolean {
+  isActive(): boolean {
     return !!this.sandbox;
   }
 }

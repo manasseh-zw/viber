@@ -7,7 +7,6 @@ export interface SandboxFile {
 export interface SandboxInfo {
   sandboxId: string;
   url: string;
-  provider: "e2b" | "daytona";
   createdAt: Date;
 }
 
@@ -16,12 +15,6 @@ export interface CommandResult {
   stderr: string;
   exitCode: number;
   success: boolean;
-}
-
-export interface SandboxProviderConfig {
-  apiKey?: string;
-  timeoutMs?: number;
-  template?: string;
 }
 
 export interface SandboxFileCache {
@@ -38,29 +31,6 @@ export interface SandboxState {
     sandboxId: string;
     url: string;
   } | null;
-}
-
-export abstract class SandboxProvider {
-  protected config: SandboxProviderConfig;
-  protected sandbox: unknown;
-  protected sandboxInfo: SandboxInfo | null = null;
-
-  constructor(config: SandboxProviderConfig = {}) {
-    this.config = config;
-  }
-
-  abstract createSandbox(): Promise<SandboxInfo>;
-  abstract runCommand(command: string): Promise<CommandResult>;
-  abstract writeFile(path: string, content: string): Promise<void>;
-  abstract readFile(path: string): Promise<string>;
-  abstract listFiles(directory?: string): Promise<string[]>;
-  abstract installPackages(packages: string[]): Promise<CommandResult>;
-  abstract setupViteApp(): Promise<void>;
-  abstract restartViteServer(): Promise<void>;
-  abstract getSandboxUrl(): string | null;
-  abstract getSandboxInfo(): SandboxInfo | null;
-  abstract terminate(): Promise<void>;
-  abstract isAlive(): boolean;
 }
 
 declare global {

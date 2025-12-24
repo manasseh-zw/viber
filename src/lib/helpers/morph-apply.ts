@@ -1,5 +1,5 @@
 import { appEnv } from "../env/env.server";
-import type { SandboxProvider } from "../types/sandbox";
+import type { DaytonaSandbox } from "../sandbox/daytona.provider";
 
 export interface MorphEditBlock {
   targetFile: string;
@@ -40,7 +40,7 @@ export function normalizeProjectPath(inputPath: string): {
     normalizedPath = "src/" + normalizedPath;
   }
 
-  const fullPath = `/home/user/app/${normalizedPath}`;
+  const fullPath = `/home/daytona/app/${normalizedPath}`;
   return { normalizedPath, fullPath };
 }
 
@@ -89,7 +89,7 @@ export function parseMorphEdits(text: string): MorphEditBlock[] {
 }
 
 async function readFileFromSandbox(
-  provider: SandboxProvider,
+  sandbox: DaytonaSandbox,
   normalizedPath: string,
   fullPath: string
 ): Promise<string> {
@@ -106,10 +106,10 @@ async function readFileFromSandbox(
   }
 
   try {
-    return await provider.readFile(fullPath);
+    return await sandbox.read(fullPath);
   } catch {
     try {
-      return await provider.readFile(normalizedPath);
+      return await sandbox.read(normalizedPath);
     } catch {
       throw new Error(`Unable to read file: ${normalizedPath}`);
     }
@@ -117,15 +117,15 @@ async function readFileFromSandbox(
 }
 
 async function writeFileToSandbox(
-  provider: SandboxProvider,
+  sandbox: DaytonaSandbox,
   normalizedPath: string,
   fullPath: string,
   content: string
 ): Promise<void> {
   try {
-    await provider.writeFile(fullPath, content);
+    await sandbox.write(fullPath, content);
   } catch {
-    await provider.writeFile(normalizedPath, content);
+    await sandbox.write(normalizedPath, content);
   }
 
   if (
@@ -153,7 +153,7 @@ async function writeFileToSandbox(
 }
 
 export async function applyMorphEditToFile(params: {
-  provider: SandboxProvider;
+  sandbox: DaytonaSandbox;
   targetPath: string;
   instructions: string;
   updateSnippet: string;
@@ -168,7 +168,7 @@ export async function applyMorphEditToFile(params: {
     );
 
     const initialCode = await readFileFromSandbox(
-      params.provider,
+      params.sandbox,
       normalizedPath,
       fullPath
     );
@@ -196,7 +196,7 @@ export async function applyMorphEditToFile(params: {
     }
 
     await writeFileToSandbox(
-      params.provider,
+      params.sandbox,
       normalizedPath,
       fullPath,
       mergedCode

@@ -1,9 +1,9 @@
-import type { SandboxProvider } from "./types";
-import { SandboxFactory } from "./factory";
+import type { DaytonaSandbox } from "./daytona.provider";
+import { createSandbox } from "./factory";
 
 interface ManagedSandbox {
   sandboxId: string;
-  provider: SandboxProvider;
+  sandbox: DaytonaSandbox;
   createdAt: Date;
   lastAccessed: Date;
 }
@@ -12,36 +12,35 @@ class SandboxManager {
   private sandboxes: Map<string, ManagedSandbox> = new Map();
   private activeSandboxId: string | null = null;
 
-  async getOrCreateProvider(sandboxId: string): Promise<SandboxProvider> {
+  async getOrCreate(sandboxId: string): Promise<DaytonaSandbox> {
     const existing = this.sandboxes.get(sandboxId);
     if (existing) {
       existing.lastAccessed = new Date();
-      return existing.provider;
+      return existing.sandbox;
     }
 
-    const provider = SandboxFactory.create();
-    return provider;
+    return createSandbox();
   }
 
-  registerSandbox(sandboxId: string, provider: SandboxProvider): void {
+  register(sandboxId: string, sandbox: DaytonaSandbox): void {
     this.sandboxes.set(sandboxId, {
       sandboxId,
-      provider,
+      sandbox,
       createdAt: new Date(),
       lastAccessed: new Date(),
     });
     this.activeSandboxId = sandboxId;
   }
 
-  getActiveProvider(): SandboxProvider | null {
+  getActive(): DaytonaSandbox | null {
     if (!this.activeSandboxId) {
       return null;
     }
 
-    const sandbox = this.sandboxes.get(this.activeSandboxId);
-    if (sandbox) {
-      sandbox.lastAccessed = new Date();
-      return sandbox.provider;
+    const managed = this.sandboxes.get(this.activeSandboxId);
+    if (managed) {
+      managed.lastAccessed = new Date();
+      return managed.sandbox;
     }
 
     return null;
@@ -51,16 +50,16 @@ class SandboxManager {
     return this.activeSandboxId;
   }
 
-  getProvider(sandboxId: string): SandboxProvider | null {
-    const sandbox = this.sandboxes.get(sandboxId);
-    if (sandbox) {
-      sandbox.lastAccessed = new Date();
-      return sandbox.provider;
+  get(sandboxId: string): DaytonaSandbox | null {
+    const managed = this.sandboxes.get(sandboxId);
+    if (managed) {
+      managed.lastAccessed = new Date();
+      return managed.sandbox;
     }
     return null;
   }
 
-  setActiveSandbox(sandboxId: string): boolean {
+  setActive(sandboxId: string): boolean {
     if (this.sandboxes.has(sandboxId)) {
       this.activeSandboxId = sandboxId;
       return true;
@@ -68,11 +67,11 @@ class SandboxManager {
     return false;
   }
 
-  async terminateSandbox(sandboxId: string): Promise<void> {
-    const sandbox = this.sandboxes.get(sandboxId);
-    if (sandbox) {
+  async terminate(sandboxId: string): Promise<void> {
+    const managed = this.sandboxes.get(sandboxId);
+    if (managed) {
       try {
-        await sandbox.provider.terminate();
+        await managed.sandbox.destroy();
       } catch (error) {
         console.error(`Error terminating sandbox ${sandboxId}:`, error);
       }
@@ -85,9 +84,9 @@ class SandboxManager {
   }
 
   async terminateAll(): Promise<void> {
-    const promises = Array.from(this.sandboxes.values()).map((sandbox) =>
-      sandbox.provider.terminate().catch((err) => {
-        console.error(`Error terminating sandbox ${sandbox.sandboxId}:`, err);
+    const promises = Array.from(this.sandboxes.values()).map((managed) =>
+      managed.sandbox.destroy().catch((err) => {
+        console.error(`Error terminating sandbox ${managed.sandboxId}:`, err);
       })
     );
 
@@ -108,11 +107,11 @@ class SandboxManager {
     }
 
     for (const id of toDelete) {
-      await this.terminateSandbox(id);
+      await this.terminate(id);
     }
   }
 
-  getSandboxCount(): number {
+  count(): number {
     return this.sandboxes.size;
   }
 }
@@ -125,4 +124,3 @@ declare global {
 }
 
 global.sandboxManager = sandboxManager;
-
