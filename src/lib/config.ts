@@ -6,6 +6,10 @@ export const appConfig = {
     devPort: 3000,
     devStartupDelay: 5000,
     devRestartDelay: 3000,
+    // Custom preview proxy domain (set to enable warning-free previews)
+    // Format: {port}-{sandboxId}.{proxyDomain}
+    // Leave empty to use default Daytona preview URLs
+    previewProxyDomain: "preview.viber.lol",
   },
 
   // E2B Sandbox Configuration (Legacy - for rollback)

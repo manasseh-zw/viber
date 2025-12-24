@@ -12,6 +12,7 @@ const SNAPSHOT_NAME = appConfig.daytona.snapshotName;
 const WORKING_DIR = appConfig.daytona.workingDirectory;
 const DEV_PORT = appConfig.daytona.devPort;
 const DEV_SESSION_ID = "bun-dev-server";
+const PREVIEW_PROXY_DOMAIN = appConfig.daytona.previewProxyDomain;
 
 export class DaytonaProvider extends SandboxProvider {
   private daytona: Daytona;
@@ -24,14 +25,21 @@ export class DaytonaProvider extends SandboxProvider {
     });
   }
 
+  private buildPreviewUrl(sandboxId: string): string {
+    if (PREVIEW_PROXY_DOMAIN) {
+      // Use custom proxy: https://{port}-{sandboxId}.preview.viber.lol
+      return `https://${DEV_PORT}-${sandboxId}.${PREVIEW_PROXY_DOMAIN}`;
+    }
+    // Fallback to default Daytona preview URL
+    return `https://${DEV_PORT}-${sandboxId}.proxy.daytona.works`;
+  }
+
   async reconnect(sandboxId: string): Promise<boolean> {
     try {
       this.sandbox = await this.daytona.get(sandboxId);
-      const preview = await this.sandbox.getPreviewLink(DEV_PORT);
-      const previewUrl = this.buildPreviewUrl(preview.url, preview.token);
       this.sandboxInfo = {
         sandboxId: this.sandbox.id,
-        url: previewUrl,
+        url: this.buildPreviewUrl(this.sandbox.id),
         provider: "daytona",
         createdAt: new Date(),
       };
@@ -39,13 +47,6 @@ export class DaytonaProvider extends SandboxProvider {
     } catch {
       return false;
     }
-  }
-
-  private buildPreviewUrl(baseUrl: string, token?: string): string {
-    if (!token) return baseUrl;
-    const url = new URL(baseUrl);
-    url.searchParams.set("tkn", token);
-    return url.toString();
   }
 
   async createSandbox(): Promise<SandboxInfo> {
@@ -58,12 +59,9 @@ export class DaytonaProvider extends SandboxProvider {
       public: true,
     });
 
-    const preview = await this.sandbox.getPreviewLink(DEV_PORT);
-    const previewUrl = this.buildPreviewUrl(preview.url, preview.token);
-
     this.sandboxInfo = {
       sandboxId: this.sandbox.id,
-      url: previewUrl,
+      url: this.buildPreviewUrl(this.sandbox.id),
       provider: "daytona",
       createdAt: new Date(),
     };
