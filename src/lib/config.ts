@@ -8,6 +8,9 @@ export const appConfig = {
     devRestartDelay: 3000,
     // Auto-stop sandbox after N minutes of inactivity (0 = disabled)
     autoStopIntervalMinutes: 30,
+    // Auto-delete sandbox after being stopped for N minutes
+    // 0 = delete immediately when stopped, -1 = never auto-delete
+    autoDeleteIntervalMinutes: 0,
     // Custom preview proxy domain (set to enable warning-free previews)
     // Format: {port}-{sandboxId}.{proxyDomain}
     // Leave empty to use default Daytona preview URLs
