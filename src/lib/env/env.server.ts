@@ -32,7 +32,11 @@ export const appEnv = {
   DEFAULT_MODEL: optionalEnv("DEFAULT_MODEL", "gemini-2.0-flash"),
 
   // Sandbox Configuration
-  E2B_API_KEY: requireEnv("E2B_API_KEY"),
+  DAYTONA_API_KEY: requireEnv("DAYTONA_API_KEY"),
+  E2B_API_KEY: optionalEnv("E2B_API_KEY"),
+  SANDBOX_PROVIDER: optionalEnv("SANDBOX_PROVIDER", "daytona") as
+    | "daytona"
+    | "e2b",
 
   // Morph Fast Apply (Optional - for surgical edits)
   MORPH_API_KEY: optionalEnv("MORPH_API_KEY"),

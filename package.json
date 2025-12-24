@@ -7,10 +7,13 @@
     "build": "vite build",
     "serve": "vite preview",
     "start": "bun --bun .output/server/index.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "daytona:snapshot": "bun run scripts/create-daytona-snapshot.ts",
+    "daytona:benchmark": "bun run scripts/benchmark-daytona.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.42",
+    "@daytonaio/sdk": "^0.128.1",
     "@e2b/code-interpreter": "^2.2.0",
     "@elevenlabs/react": "^0.12.3",
     "@phosphor-icons/react": "^2.1.10",

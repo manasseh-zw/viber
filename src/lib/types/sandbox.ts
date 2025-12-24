@@ -7,7 +7,7 @@ export interface SandboxFile {
 export interface SandboxInfo {
   sandboxId: string;
   url: string;
-  provider: "e2b";
+  provider: "e2b" | "daytona";
   createdAt: Date;
 }
 
