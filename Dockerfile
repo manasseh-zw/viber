@@ -11,6 +11,7 @@ COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
 ENV NODE_ENV=production
+ENV VITE_ELEVENLABS_AGENT_ID=agent_5901kch85sfye06s56m7kshw9kf4
 RUN rm -rf .output && bun run build
 
 FROM base AS release
