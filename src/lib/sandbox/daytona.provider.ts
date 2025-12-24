@@ -57,6 +57,7 @@ export class DaytonaProvider extends SandboxProvider {
     this.sandbox = await this.daytona.create({
       snapshot: SNAPSHOT_NAME,
       public: true,
+      autoStopInterval: appConfig.daytona.autoStopIntervalMinutes,
     });
 
     this.sandboxInfo = {

@@ -9,7 +9,8 @@
     "start": "bun --bun .output/server/index.mjs",
     "test": "vitest run",
     "daytona:snapshot": "bun run scripts/create-daytona-snapshot.ts",
-    "daytona:benchmark": "bun run scripts/benchmark-daytona.ts"
+    "daytona:benchmark": "bun run scripts/benchmark-daytona.ts",
+    "daytona:test-proxy": "bun run scripts/test-proxy.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.42",
