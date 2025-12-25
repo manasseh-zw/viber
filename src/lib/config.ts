@@ -30,9 +30,17 @@ export const appConfig = {
 
   ai: {
     defaultModel: "gemini-3-pro", // Best balance for default use
-    availableModels: ["gemini-3-pro", "gemini-2.5-flash", "gemini-2.5-pro"], // The updated Top 3
+    availableModels: [
+      "gemini-3-pro",
+      "gemini-3-flash",
+      "gemini-2.0-flash",
+      "gemini-2.5-flash",
+      "gemini-2.5-pro",
+    ], // The updated Top 3
     modelDisplayNames: {
       "gemini-3-pro": "Gemini 3 Pro",
+      "gemini-3-flash": "Gemini 3 Flash",
+      "gemini-2.0-flash": "Gemini 2.0 Flash",
       "gemini-2.5-flash": "Gemini 2.5 Flash",
       "gemini-2.5-pro": "Gemini 2.5 Pro",
     } as Record<string, string>,

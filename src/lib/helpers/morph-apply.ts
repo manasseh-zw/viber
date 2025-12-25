@@ -1,5 +1,6 @@
 import { appEnv } from "../env/env.server";
 import type { DaytonaSandbox } from "../sandbox/daytona.provider";
+import { mergeCodeWithGemini } from "./gemini-apply";
 
 export interface MorphEditBlock {
   targetFile: string;
@@ -159,10 +160,6 @@ export async function applyMorphEditToFile(params: {
   updateSnippet: string;
 }): Promise<MorphApplyResult> {
   try {
-    if (!appEnv.MORPH_API_KEY) {
-      return { success: false, error: "MORPH_API_KEY not set" };
-    }
-
     const { normalizedPath, fullPath } = normalizeProjectPath(
       params.targetPath
     );
@@ -173,26 +170,50 @@ export async function applyMorphEditToFile(params: {
       fullPath
     );
 
-    const resp = await morphChatCompletionsCreate({
-      model: "morph-v3-large",
-      messages: [
-        {
-          role: "user",
-          content: `<instruction>${params.instructions || ""}</instruction>\n<code>${initialCode}</code>\n<update>${params.updateSnippet}</update>`,
-        },
-      ],
-    });
+    const useGemini =
+      appEnv.PREFER_GEMINI_APPLY === "true" || !appEnv.MORPH_API_KEY;
+    let mergedCode = "";
 
-    const mergedCode =
-      (resp as { choices?: Array<{ message?: { content?: string } }> })
-        ?.choices?.[0]?.message?.content || "";
+    if (useGemini) {
+      console.log("[Apply] Using Gemini Flash for code merge:", normalizedPath);
+      const result = await mergeCodeWithGemini({
+        originalCode: initialCode,
+        instructions: params.instructions,
+        updateSnippet: params.updateSnippet,
+        fileName: normalizedPath,
+      });
 
-    if (!mergedCode) {
-      return {
-        success: false,
-        error: "Morph returned empty content",
-        normalizedPath,
-      };
+      if (!result.success || !result.mergedCode) {
+        return {
+          success: false,
+          error: result.error || "Gemini failed to merge code",
+          normalizedPath,
+        };
+      }
+      mergedCode = result.mergedCode;
+    } else {
+      console.log("[Apply] Using MorphLLM for code merge:", normalizedPath);
+      const resp = await morphChatCompletionsCreate({
+        model: "morph-v3-large",
+        messages: [
+          {
+            role: "user",
+            content: `<instruction>${params.instructions || ""}</instruction>\n<code>${initialCode}</code>\n<update>${params.updateSnippet}</update>`,
+          },
+        ],
+      });
+
+      mergedCode =
+        (resp as { choices?: Array<{ message?: { content?: string } }> })
+          ?.choices?.[0]?.message?.content || "";
+
+      if (!mergedCode) {
+        return {
+          success: false,
+          error: "Morph returned empty content",
+          normalizedPath,
+        };
+      }
     }
 
     await writeFileToSandbox(
@@ -209,5 +230,5 @@ export async function applyMorphEditToFile(params: {
 }
 
 export function isMorphAvailable(): boolean {
-  return !!appEnv.MORPH_API_KEY;
+  return !!appEnv.MORPH_API_KEY || true; // Always available now because of Gemini fallback
 }
