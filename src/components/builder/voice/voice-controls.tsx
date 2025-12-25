@@ -5,6 +5,7 @@ import {
   PhoneDisconnectIcon,
   PhoneIcon,
   CircleNotchIcon,
+  PhoneSlashIcon,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
@@ -49,7 +50,7 @@ export function VoiceControls({
       )}
 
       <Button
-        variant={isConnected ? "destructive" : "default"}
+        variant="default"
         size="icon"
         onClick={isConnected ? onDisconnect : onConnect}
         disabled={isConnecting}
@@ -61,7 +62,7 @@ export function VoiceControls({
         {isConnecting ? (
           <CircleNotchIcon className="size-6 animate-spin" />
         ) : isConnected ? (
-          <PhoneDisconnectIcon weight="fill" className="size-6" />
+          <PhoneSlashIcon weight="fill" className="size-6" />
         ) : (
           <PhoneIcon weight="fill" className="size-6" />
         )}

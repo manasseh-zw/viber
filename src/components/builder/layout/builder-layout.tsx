@@ -5,6 +5,25 @@ import { useGeneration } from "@/lib/hooks/use-generation";
 import { VoiceSidebar, useVoiceAgentControls } from "../voice";
 import { BuilderMain } from "./builder-main";
 
+function getVoiceFriendlyFileName(path: string): string {
+  const fileName = path.split("/").pop() || path;
+  const nameWithoutExt = fileName.replace(/\.[^.]+$/, "");
+  
+  const words = nameWithoutExt
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[-_]/g, " ")
+    .toLowerCase();
+  
+  if (path.includes("components/")) return `the ${words} component`;
+  if (path.includes("pages/") || path.includes("routes/")) return `the ${words} page`;
+  if (path.includes("styles") || path.endsWith(".css")) return `the ${words} styles`;
+  if (path.endsWith(".json")) return `the ${words} config`;
+  if (path.includes("hooks/")) return `the ${words} hook`;
+  if (path.includes("utils/") || path.includes("lib/")) return `the ${words} utility`;
+  
+  return `the ${words} file`;
+}
+
 export function BuilderLayout() {
   const sandbox = useSandbox();
   const generation = useGeneration();
@@ -12,6 +31,8 @@ export function BuilderLayout() {
   const prevSandboxReady = useRef(false);
   const prevGenerating = useRef(false);
   const prevApplying = useRef(false);
+  const lastFileUpdateRef = useRef<string | null>(null);
+  const fileCountRef = useRef(0);
 
   useEffect(() => {
     if (!sandbox.isReady && !sandbox.isCreating && !sandbox.error) {
@@ -25,9 +46,20 @@ export function BuilderLayout() {
         description: "Your development environment is set up",
       });
       sandbox.refreshFiles();
+      
+      // Wait a moment, play success sound, then start voice session
+      setTimeout(() => {
+        const successAudio = new Audio("/success.mp3");
+        successAudio.volume = 0.4;
+        successAudio.play().catch(() => {});
+
+        voiceAgent.startSession().catch((err) => {
+          console.warn("Failed to auto-start voice session:", err);
+        });
+      }, 800);
     }
     prevSandboxReady.current = sandbox.isReady;
-  }, [sandbox.isReady, sandbox.refreshFiles]);
+  }, [sandbox.isReady, sandbox.refreshFiles, voiceAgent]);
 
   useEffect(() => {
     if (sandbox.error) {
@@ -39,11 +71,21 @@ export function BuilderLayout() {
 
   useEffect(() => {
     if (generation.isGenerating && !prevGenerating.current) {
-      voiceAgent.sendSystemUpdate("Starting code generation...");
+      voiceAgent.sendSystemUpdate("Started building your app");
+      lastFileUpdateRef.current = null;
+      fileCountRef.current = 0;
     }
 
-    if (generation.currentFile) {
-      voiceAgent.sendSystemUpdate(`Generating ${generation.currentFile.path}`);
+    if (generation.currentFile && generation.currentFile.path !== lastFileUpdateRef.current) {
+      lastFileUpdateRef.current = generation.currentFile.path;
+      fileCountRef.current++;
+      
+      if (fileCountRef.current <= 3) {
+        const friendlyName = getVoiceFriendlyFileName(generation.currentFile.path);
+        voiceAgent.sendSystemUpdate(`Working on ${friendlyName}`);
+      } else if (fileCountRef.current === 4) {
+        voiceAgent.sendSystemUpdate("Creating additional files");
+      }
     }
 
     if (
@@ -51,8 +93,9 @@ export function BuilderLayout() {
       prevGenerating.current &&
       generation.files.length > 0
     ) {
+      const fileWord = generation.files.length === 1 ? "file" : "files";
       voiceAgent.sendSystemUpdate(
-        `Generation complete: ${generation.files.length} files created`
+        `Done generating. Created ${generation.files.length} ${fileWord}`
       );
     }
 
@@ -66,13 +109,11 @@ export function BuilderLayout() {
 
   useEffect(() => {
     if (generation.isApplying && !prevApplying.current) {
-      voiceAgent.sendSystemUpdate("Applying code to sandbox...");
+      voiceAgent.sendSystemUpdate("Saving your code to the project");
     }
 
     if (!generation.isApplying && prevApplying.current && !generation.error) {
-      voiceAgent.sendSystemUpdate(
-        "Code applied successfully! Your app is ready to preview."
-      );
+      voiceAgent.sendSystemUpdate("All done! Your app is ready to preview");
       toast.success("Code applied", {
         description: `${generation.files.length} file(s) updated`,
       });
@@ -90,7 +131,7 @@ export function BuilderLayout() {
 
   useEffect(() => {
     if (generation.error) {
-      voiceAgent.sendSystemUpdate(`Error: ${generation.error}`);
+      voiceAgent.sendSystemUpdate("Something went wrong. Let me know if you'd like me to try again");
       toast.error("Generation failed", { description: generation.error });
     }
   }, [generation.error, voiceAgent]);

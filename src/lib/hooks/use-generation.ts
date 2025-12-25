@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { GeneratedFile } from "../types/ai";
 
 export interface StreamingFile {
@@ -103,6 +103,30 @@ export interface GenerateOptions {
 export function useGeneration() {
   const [state, setState] = useState<GenerationState>(initialState);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (state.isStreaming) {
+      if (!audioRef.current) {
+        audioRef.current = new Audio("/keyboard.mp3");
+        audioRef.current.loop = true;
+        audioRef.current.volume = 0.25;
+      }
+      audioRef.current.play().catch(() => {});
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    };
+  }, [state.isStreaming]);
 
   const generate = useCallback(async (options: GenerateOptions) => {
     const {
@@ -184,7 +208,8 @@ export function useGeneration() {
 
               case "stream":
                 setState((prev) => {
-                  const newStreamedCode = prev.streamedCode + event.data.content;
+                  const newStreamedCode =
+                    prev.streamedCode + event.data.content;
                   const { completedFiles, currentFile } = parseStreamingFiles(
                     newStreamedCode,
                     processedFiles
@@ -199,8 +224,8 @@ export function useGeneration() {
                     progress: currentFile
                       ? `Generating ${currentFile.path}`
                       : completedFiles.length > 0
-                      ? `Completed ${completedFiles[completedFiles.length - 1].path}`
-                      : prev.progress,
+                        ? `Completed ${completedFiles[completedFiles.length - 1].path}`
+                        : prev.progress,
                   };
                 });
                 onStream?.(event.data.content);
@@ -335,6 +360,7 @@ export function useGeneration() {
     setState((prev) => ({
       ...prev,
       isGenerating: false,
+      isStreaming: false,
       progress: "Generation cancelled",
     }));
   }, []);
@@ -352,5 +378,3 @@ export function useGeneration() {
     reset,
   };
 }
-
-export type { StreamingFile };

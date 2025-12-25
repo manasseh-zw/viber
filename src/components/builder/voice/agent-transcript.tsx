@@ -22,7 +22,7 @@ export function AgentTranscript({ messages, className }: AgentTranscriptProps) {
       <ConversationContent className="flex flex-col gap-3 p-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-            <p className="text-sm">Lisa is ready to help you build.</p>
+            <p className="text-sm">Daniel is ready to help you build.</p>
             <p className="text-xs mt-1">Just start talking!</p>
           </div>
         ) : (

@@ -72,7 +72,7 @@ export function VoiceSidebar({
     if (!isReady) return "Setting up workspace...";
     if (isGenerating) return "Generating code...";
     if (isApplying) return "Applying changes...";
-    if (status === "connected") return "Lisa is listening";
+    if (status === "connected") return "Daniel is listening";
     if (status === "connecting") return "Connecting...";
     return "Ready to start";
   };
