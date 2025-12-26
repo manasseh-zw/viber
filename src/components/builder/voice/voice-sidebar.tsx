@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button";
 import {
   PlusIcon,
   PhoneIcon,
-  PhoneDisconnectIcon,
   MicrophoneIcon,
   MicrophoneSlashIcon,
-  CircleNotchIcon,
 } from "@phosphor-icons/react";
+import { Spinner } from "@/components/ui/spinner";
 import { Orb } from "@/components/ui/orb";
 import { BarVisualizer } from "@/components/ui/bar-visualizer";
 import { VoiceAgent, useVoiceAgentControls } from "./voice-agent";
@@ -134,20 +133,19 @@ export function VoiceSidebar({
 
         <div className="mt-6 flex flex-col items-center gap-4">
           <Button
-            variant={isConnected ? "outline" : "outline"}
+            variant="outline"
             size="icon"
             onClick={isConnected ? handleDisconnect : handleConnect}
             disabled={isConnecting || !isReady}
             className={cn(
-              "size-12 rounded-full",
-              isConnected &&
-                "border-destructive text-destructive hover:bg-destructive/10"
+              "size-12 rounded-full transition-all",
+              isConnected
+                ? "bg-[#FF3B30] border-[#FF3B30] text-white hover:bg-[#FF3B30]/90"
+                : "border-primary/20 text-primary hover:bg-primary/5"
             )}
           >
             {isConnecting ? (
-              <CircleNotchIcon className="size-5 animate-spin" />
-            ) : isConnected ? (
-              <PhoneDisconnectIcon weight="fill" className="size-5" />
+              <Spinner className="size-5" />
             ) : (
               <PhoneIcon weight="fill" className="size-5" />
             )}

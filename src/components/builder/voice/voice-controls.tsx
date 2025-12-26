@@ -2,11 +2,9 @@ import { Button } from "@/components/ui/button";
 import {
   MicrophoneIcon,
   MicrophoneSlashIcon,
-  PhoneDisconnectIcon,
   PhoneIcon,
-  CircleNotchIcon,
-  PhoneSlashIcon,
 } from "@phosphor-icons/react";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
 type ConnectionStatus = "disconnected" | "connecting" | "connected";
@@ -56,13 +54,13 @@ export function VoiceControls({
         disabled={isConnecting}
         className={cn(
           "rounded-full size-14 transition-all",
-          !isConnected && !isConnecting && "bg-primary hover:bg-primary/90"
+          isConnected
+            ? "bg-[#FF3B30] hover:bg-[#FF3B30]/90 text-white"
+            : "bg-primary hover:bg-primary/90"
         )}
       >
         {isConnecting ? (
-          <CircleNotchIcon className="size-6 animate-spin" />
-        ) : isConnected ? (
-          <PhoneSlashIcon weight="fill" className="size-6" />
+          <Spinner className="size-6" />
         ) : (
           <PhoneIcon weight="fill" className="size-6" />
         )}

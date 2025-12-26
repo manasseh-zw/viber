@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Logo, LogoIcon } from "@/components/logo";
+import { Logo } from "@/components/logo";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
 import { Button } from "@/components/ui/button";
 import { ChatMessages } from "../chat/chat-messages";
