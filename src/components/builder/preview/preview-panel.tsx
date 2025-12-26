@@ -6,15 +6,17 @@ import { SandboxIframe } from "./sandbox-iframe";
 interface PreviewPanelProps {
   sandboxUrl: string | null;
   isLoading: boolean;
+  isApplying?: boolean;
   iframeKey?: number;
 }
 
 export function PreviewPanel({
   sandboxUrl,
   isLoading,
+  isApplying,
   iframeKey = 0,
 }: PreviewPanelProps) {
-  if (isLoading) {
+  if (isLoading || isApplying) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-6 text-foreground -mt-8">
         <LayoutGroup>
@@ -27,16 +29,20 @@ export function PreviewPanel({
               layout
               transition={{ type: "spring", damping: 30, stiffness: 400 }}
             >
-              Setting up{" "}
+              {isLoading ? "Setting up " : "Applying "}
             </motion.span>
             <TextRotate
-              texts={[
-                "workspace",
-                "environment",
-                "sandbox",
-                "dependencies",
-                "runtime",
-              ]}
+              texts={
+                isLoading
+                  ? [
+                      "workspace",
+                      "environment",
+                      "sandbox",
+                      "dependencies",
+                      "runtime",
+                    ]
+                  : ["changes", "updates", "features", "components", "styles"]
+              }
               mainClassName="text-white px-2 sm:px-3 bg-[#ff5941] overflow-hidden py-0.5 sm:py-1 justify-center rounded-lg"
               staggerFrom={"last"}
               initial={{ y: "100%" }}
@@ -50,7 +56,9 @@ export function PreviewPanel({
           </motion.p>
         </LayoutGroup>
         <p className="text-xs text-muted-foreground opacity-70">
-          This may take a few seconds
+          {isLoading
+            ? "This may take a few seconds"
+            : "Optimizing your preview environment"}
         </p>
       </div>
     );

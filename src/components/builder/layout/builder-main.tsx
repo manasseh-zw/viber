@@ -11,6 +11,7 @@ import type { StreamingFile } from "@/lib/hooks/use-generation";
 interface BuilderMainProps {
   sandboxUrl: string | null;
   isLoading: boolean;
+  isApplying?: boolean;
   files: Record<string, string>;
   onRefresh: () => void;
   isGenerating?: boolean;
@@ -24,6 +25,7 @@ type ActiveTab = "preview" | "code";
 export function BuilderMain({
   sandboxUrl,
   isLoading,
+  isApplying = false,
   files,
   onRefresh,
   isGenerating = false,
@@ -106,6 +108,7 @@ export function BuilderMain({
             <PreviewPanel
               sandboxUrl={sandboxUrl}
               isLoading={isLoading}
+              isApplying={isApplying}
               iframeKey={iframeKey}
             />
           </TabsContent>

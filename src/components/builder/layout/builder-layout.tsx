@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useSandbox } from "@/lib/hooks/use-sandbox";
 import { useGeneration } from "@/lib/hooks/use-generation";
@@ -31,6 +31,7 @@ export function BuilderLayout() {
   const sandbox = useSandbox();
   const generation = useGeneration();
   const voiceAgent = useVoiceAgentControls();
+  const [isStabilizing, setIsStabilizing] = useState(false);
   const prevSandboxReady = useRef(false);
   const prevGenerating = useRef(false);
   const prevApplying = useRef(false);
@@ -140,6 +141,14 @@ export function BuilderLayout() {
       });
       sandbox.refreshFiles();
 
+      voiceAgent.sendSystemUpdate(
+        "Finished generating and applying your code. Your app should appear in the preview in a few seconds"
+      );
+
+      // Start stabilization period to hide HMR transitions
+      setIsStabilizing(true);
+      setTimeout(() => setIsStabilizing(false), 20000); // 15 second stabilization
+
       // Run diagnostics after application with a delay to let files settle
       if (sandbox.sandboxId) {
         const sandboxId = sandbox.sandboxId;
@@ -212,6 +221,7 @@ export function BuilderLayout() {
       <BuilderMain
         sandboxUrl={sandbox.sandboxUrl}
         isLoading={sandbox.isCreating}
+        isApplying={generation.isApplying || isStabilizing}
         files={sandbox.files}
         onRefresh={() => sandbox.refreshFiles()}
         isGenerating={generation.isGenerating}
