@@ -1,6 +1,5 @@
 import { generateText } from "ai";
 import { getModel } from "../ai/provider";
-import { log } from "console";
 
 export interface MergeResult {
   success: boolean;

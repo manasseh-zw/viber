@@ -112,8 +112,7 @@ export async function getSandboxStatus(
 
 export async function applyFilesToSandbox(
   files: SandboxFile[],
-  sandboxId?: string,
-  useMorphForEdits: boolean = true
+  sandboxId?: string
 ): Promise<{ success: boolean; appliedFiles: string[]; error?: string }> {
   try {
     const sandbox = sandboxId
@@ -125,38 +124,35 @@ export async function applyFilesToSandbox(
     }
 
     const appliedFiles: string[] = [];
-    const { applyMorphEditToFile, isMorphAvailable } = await import(
-      "../helpers/morph-apply"
+    const { applyGeminiEditToFile } = await import(
+      "../helpers/gemini-apply-helper"
     );
 
-    const morphAvailable = isMorphAvailable() && useMorphForEdits;
+    // Only fetch file list if we have multiple files and might be editing
+    const existingFiles = files.length > 1 ? await sandbox.files() : [];
 
     for (const file of files) {
       try {
-        const existingFiles = await sandbox.files();
         const fileExists = existingFiles.some(
           (f) => f === file.path || f.endsWith(file.path)
         );
 
-        if (fileExists && morphAvailable) {
+        if (fileExists) {
           console.log(
-            `[applyFilesToSandbox] Using Morph to merge edits for existing file: ${file.path}`
+            `[applyFilesToSandbox] Using Gemini to merge edits for: ${file.path}`
           );
-          const morphResult = await applyMorphEditToFile({
+          const mergeResult = await applyGeminiEditToFile({
             sandbox,
             targetPath: file.path,
             instructions: `Apply the following changes to the file`,
             updateSnippet: file.content,
           });
 
-          if (morphResult.success) {
+          if (mergeResult.success) {
             appliedFiles.push(file.path);
-            console.log(
-              `[applyFilesToSandbox] Morph successfully merged: ${file.path}`
-            );
           } else {
             console.warn(
-              `[applyFilesToSandbox] Morph failed, falling back to direct write: ${morphResult.error}`
+              `[applyFilesToSandbox] Gemini merge failed, falling back to direct write: ${mergeResult.error}`
             );
             await sandbox.write(file.path, file.content);
             appliedFiles.push(file.path);
@@ -225,6 +221,32 @@ export async function restartSandbox(
     return { success: true };
   } catch (error) {
     console.error("Error restarting sandbox:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+export async function runSandboxDiagnostics(
+  sandboxId?: string
+): Promise<{ success: boolean; output?: string; error?: string }> {
+  try {
+    const sandbox = sandboxId
+      ? sandboxManager.get(sandboxId)
+      : sandboxManager.getActive();
+
+    if (!sandbox) {
+      return { success: false, error: "No active sandbox" };
+    }
+
+    const result = await sandbox.runDiagnostics();
+    return {
+      success: result.success,
+      output: result.output,
+    };
+  } catch (error) {
+    console.error("Error running diagnostics:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

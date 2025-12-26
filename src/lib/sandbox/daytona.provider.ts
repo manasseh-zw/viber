@@ -224,6 +224,30 @@ export default App`
 }`
     );
 
+    await this.write(
+      "vite.config.ts",
+      `import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  server: {
+    host: '0.0.0.0',
+    port: ${DEV_PORT},
+    allowedHosts: true,
+    hmr: {
+      protocol: 'wss',
+      clientPort: 443,
+    },
+    watch: {
+      usePolling: true,
+      interval: 100,
+    },
+  },
+})`
+    );
+
     await this.sandbox.process.createSession(DEV_SESSION_ID);
 
     await this.sandbox.process.executeSessionCommand(DEV_SESSION_ID, {
@@ -257,6 +281,28 @@ export default App`
     await new Promise((resolve) =>
       setTimeout(resolve, appConfig.daytona.devRestartDelay)
     );
+  }
+
+  async runDiagnostics(): Promise<{ success: boolean; output: string }> {
+    if (!this.sandbox) {
+      throw new Error("No active sandbox");
+    }
+
+    // Run tsc to check for type errors and missing imports
+    // We use --noEmit because we only care about the errors
+    // We use bun x to ensure tsc is available
+    // We add flags to make it reluctant and only report critical errors
+    const result = await this.exec(
+      "bun x tsc --noEmit --skipLibCheck --jsx react-jsx --esModuleInterop " +
+        "--target esnext --module esnext --moduleResolution bundle " +
+        "--noImplicitAny false --noUnusedLocals false --noUnusedParameters false " +
+        "--allowUnreachableCode true --allowUnusedLabels true --strict false"
+    );
+
+    return {
+      success: result.success,
+      output: result.stdout || result.stderr || "",
+    };
   }
 
   getUrl(): string | null {

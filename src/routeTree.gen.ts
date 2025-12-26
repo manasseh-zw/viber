@@ -16,6 +16,7 @@ import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiSandboxStatusRouteImport } from './routes/api/sandbox/status'
 import { Route as ApiSandboxKillRouteImport } from './routes/api/sandbox/kill'
 import { Route as ApiSandboxFilesRouteImport } from './routes/api/sandbox/files'
+import { Route as ApiSandboxDiagnosticsRouteImport } from './routes/api/sandbox/diagnostics'
 import { Route as ApiSandboxCreateRouteImport } from './routes/api/sandbox/create'
 import { Route as ApiPackagesInstallRouteImport } from './routes/api/packages/install'
 import { Route as ApiGenerateStreamRouteImport } from './routes/api/generate/stream'
@@ -56,6 +57,11 @@ const ApiSandboxFilesRoute = ApiSandboxFilesRouteImport.update({
   path: '/api/sandbox/files',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSandboxDiagnosticsRoute = ApiSandboxDiagnosticsRouteImport.update({
+  id: '/api/sandbox/diagnostics',
+  path: '/api/sandbox/diagnostics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSandboxCreateRoute = ApiSandboxCreateRouteImport.update({
   id: '/api/sandbox/create',
   path: '/api/sandbox/create',
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/api/generate/stream': typeof ApiGenerateStreamRoute
   '/api/packages/install': typeof ApiPackagesInstallRoute
   '/api/sandbox/create': typeof ApiSandboxCreateRoute
+  '/api/sandbox/diagnostics': typeof ApiSandboxDiagnosticsRoute
   '/api/sandbox/files': typeof ApiSandboxFilesRoute
   '/api/sandbox/kill': typeof ApiSandboxKillRoute
   '/api/sandbox/status': typeof ApiSandboxStatusRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/api/generate/stream': typeof ApiGenerateStreamRoute
   '/api/packages/install': typeof ApiPackagesInstallRoute
   '/api/sandbox/create': typeof ApiSandboxCreateRoute
+  '/api/sandbox/diagnostics': typeof ApiSandboxDiagnosticsRoute
   '/api/sandbox/files': typeof ApiSandboxFilesRoute
   '/api/sandbox/kill': typeof ApiSandboxKillRoute
   '/api/sandbox/status': typeof ApiSandboxStatusRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/api/generate/stream': typeof ApiGenerateStreamRoute
   '/api/packages/install': typeof ApiPackagesInstallRoute
   '/api/sandbox/create': typeof ApiSandboxCreateRoute
+  '/api/sandbox/diagnostics': typeof ApiSandboxDiagnosticsRoute
   '/api/sandbox/files': typeof ApiSandboxFilesRoute
   '/api/sandbox/kill': typeof ApiSandboxKillRoute
   '/api/sandbox/status': typeof ApiSandboxStatusRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/api/generate/stream'
     | '/api/packages/install'
     | '/api/sandbox/create'
+    | '/api/sandbox/diagnostics'
     | '/api/sandbox/files'
     | '/api/sandbox/kill'
     | '/api/sandbox/status'
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/api/generate/stream'
     | '/api/packages/install'
     | '/api/sandbox/create'
+    | '/api/sandbox/diagnostics'
     | '/api/sandbox/files'
     | '/api/sandbox/kill'
     | '/api/sandbox/status'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/api/generate/stream'
     | '/api/packages/install'
     | '/api/sandbox/create'
+    | '/api/sandbox/diagnostics'
     | '/api/sandbox/files'
     | '/api/sandbox/kill'
     | '/api/sandbox/status'
@@ -168,6 +180,7 @@ export interface RootRouteChildren {
   ApiGenerateStreamRoute: typeof ApiGenerateStreamRoute
   ApiPackagesInstallRoute: typeof ApiPackagesInstallRoute
   ApiSandboxCreateRoute: typeof ApiSandboxCreateRoute
+  ApiSandboxDiagnosticsRoute: typeof ApiSandboxDiagnosticsRoute
   ApiSandboxFilesRoute: typeof ApiSandboxFilesRoute
   ApiSandboxKillRoute: typeof ApiSandboxKillRoute
   ApiSandboxStatusRoute: typeof ApiSandboxStatusRoute
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSandboxFilesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/sandbox/diagnostics': {
+      id: '/api/sandbox/diagnostics'
+      path: '/api/sandbox/diagnostics'
+      fullPath: '/api/sandbox/diagnostics'
+      preLoaderRoute: typeof ApiSandboxDiagnosticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/sandbox/create': {
       id: '/api/sandbox/create'
       path: '/api/sandbox/create'
@@ -264,6 +284,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGenerateStreamRoute: ApiGenerateStreamRoute,
   ApiPackagesInstallRoute: ApiPackagesInstallRoute,
   ApiSandboxCreateRoute: ApiSandboxCreateRoute,
+  ApiSandboxDiagnosticsRoute: ApiSandboxDiagnosticsRoute,
   ApiSandboxFilesRoute: ApiSandboxFilesRoute,
   ApiSandboxKillRoute: ApiSandboxKillRoute,
   ApiSandboxStatusRoute: ApiSandboxStatusRoute,

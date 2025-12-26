@@ -8,19 +8,22 @@ import { BuilderMain } from "./builder-main";
 function getVoiceFriendlyFileName(path: string): string {
   const fileName = path.split("/").pop() || path;
   const nameWithoutExt = fileName.replace(/\.[^.]+$/, "");
-  
+
   const words = nameWithoutExt
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/[-_]/g, " ")
     .toLowerCase();
-  
+
   if (path.includes("components/")) return `the ${words} component`;
-  if (path.includes("pages/") || path.includes("routes/")) return `the ${words} page`;
-  if (path.includes("styles") || path.endsWith(".css")) return `the ${words} styles`;
+  if (path.includes("pages/") || path.includes("routes/"))
+    return `the ${words} page`;
+  if (path.includes("styles") || path.endsWith(".css"))
+    return `the ${words} styles`;
   if (path.endsWith(".json")) return `the ${words} config`;
   if (path.includes("hooks/")) return `the ${words} hook`;
-  if (path.includes("utils/") || path.includes("lib/")) return `the ${words} utility`;
-  
+  if (path.includes("utils/") || path.includes("lib/"))
+    return `the ${words} utility`;
+
   return `the ${words} file`;
 }
 
@@ -34,6 +37,20 @@ export function BuilderLayout() {
   const lastFileUpdateRef = useRef<string | null>(null);
   const fileCountRef = useRef(0);
 
+  const handleNavigate = useCallback(
+    (panel: "preview" | "code" | "files", file?: string) => {
+      console.log("[BuilderLayout] Navigate to:", panel, file);
+    },
+    []
+  );
+
+  const handleGenerate = useCallback(
+    async (options: Parameters<typeof generation.generate>[0]) => {
+      await generation.generate(options);
+    },
+    [generation]
+  );
+
   useEffect(() => {
     if (!sandbox.isReady && !sandbox.isCreating && !sandbox.error) {
       sandbox.createSandbox();
@@ -46,7 +63,7 @@ export function BuilderLayout() {
         description: "Your development environment is set up",
       });
       sandbox.refreshFiles();
-      
+
       // Wait a moment, play success sound, then start voice session
       setTimeout(() => {
         const successAudio = new Audio("/success.mp3");
@@ -76,12 +93,17 @@ export function BuilderLayout() {
       fileCountRef.current = 0;
     }
 
-    if (generation.currentFile && generation.currentFile.path !== lastFileUpdateRef.current) {
+    if (
+      generation.currentFile &&
+      generation.currentFile.path !== lastFileUpdateRef.current
+    ) {
       lastFileUpdateRef.current = generation.currentFile.path;
       fileCountRef.current++;
-      
+
       if (fileCountRef.current <= 3) {
-        const friendlyName = getVoiceFriendlyFileName(generation.currentFile.path);
+        const friendlyName = getVoiceFriendlyFileName(
+          generation.currentFile.path
+        );
         voiceAgent.sendSystemUpdate(`Working on ${friendlyName}`);
       } else if (fileCountRef.current === 4) {
         voiceAgent.sendSystemUpdate("Creating additional files");
@@ -113,11 +135,34 @@ export function BuilderLayout() {
     }
 
     if (!generation.isApplying && prevApplying.current && !generation.error) {
-      voiceAgent.sendSystemUpdate("All done! Your app is ready to preview");
       toast.success("Code applied", {
         description: `${generation.files.length} file(s) updated`,
       });
       sandbox.refreshFiles();
+
+      // Run diagnostics after application with a delay to let files settle
+      if (sandbox.sandboxId) {
+        const sandboxId = sandbox.sandboxId;
+        setTimeout(() => {
+          generation.checkDiagnostics(sandboxId).then((result) => {
+            if (!result.success && result.output) {
+              console.warn(
+                "[BuilderLayout] Diagnostics found issues:",
+                result.output
+              );
+              toast.warning("Potential issues detected", {
+                description:
+                  "Check the console for details or ask me to fix them.",
+              });
+              // We no longer auto-fix to prevent cyclic generations and token burn
+            } else {
+              voiceAgent.sendSystemUpdate(
+                "All done! Your app is ready to preview"
+              );
+            }
+          });
+        }, 5000); // 5 second delay
+      }
     }
 
     prevApplying.current = generation.isApplying;
@@ -127,11 +172,14 @@ export function BuilderLayout() {
     generation.files.length,
     voiceAgent,
     sandbox,
+    handleGenerate,
   ]);
 
   useEffect(() => {
     if (generation.error) {
-      voiceAgent.sendSystemUpdate("Something went wrong. Let me know if you'd like me to try again");
+      voiceAgent.sendSystemUpdate(
+        "Something went wrong. Let me know if you'd like me to try again"
+      );
       toast.error("Generation failed", { description: generation.error });
     }
   }, [generation.error, voiceAgent]);
@@ -150,20 +198,6 @@ export function BuilderLayout() {
       );
     }
   }, [generation.isGenerating, generation.files.length, sandbox.sandboxId]);
-
-  const handleNavigate = useCallback(
-    (panel: "preview" | "code" | "files", file?: string) => {
-      console.log("[BuilderLayout] Navigate to:", panel, file);
-    },
-    []
-  );
-
-  const handleGenerate = useCallback(
-    async (options: Parameters<typeof generation.generate>[0]) => {
-      await generation.generate(options);
-    },
-    [generation]
-  );
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background">

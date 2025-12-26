@@ -11,6 +11,7 @@ export interface StreamingFile {
 export interface GenerationState {
   isGenerating: boolean;
   isApplying: boolean;
+  isChecking: boolean;
   isStreaming: boolean;
   progress: string;
   streamedCode: string;
@@ -79,6 +80,7 @@ function parseStreamingFiles(
 const initialState: GenerationState = {
   isGenerating: false,
   isApplying: false,
+  isChecking: false,
   isStreaming: false,
   progress: "",
   streamedCode: "",
@@ -370,11 +372,56 @@ export function useGeneration() {
     setState(initialState);
   }, []);
 
+  const checkDiagnostics = useCallback(
+    async (sandboxId?: string): Promise<{ success: boolean; output?: string }> => {
+      setState((prev) => ({
+        ...prev,
+        isChecking: true,
+        progress: "Running diagnostics...",
+      }));
+
+      try {
+        const response = await fetch("/api/sandbox/diagnostics", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sandboxId }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to run diagnostics");
+        }
+
+        const result = await response.json();
+
+        setState((prev) => ({
+          ...prev,
+          isChecking: false,
+          progress: result.success
+            ? "Diagnostics passed"
+            : "Diagnostics found issues",
+        }));
+
+        return result;
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+        setState((prev) => ({
+          ...prev,
+          isChecking: false,
+          error: message,
+        }));
+        return { success: false };
+      }
+    },
+    []
+  );
+
   return {
     ...state,
     generate,
     apply,
     cancel,
     reset,
+    checkDiagnostics,
   };
 }

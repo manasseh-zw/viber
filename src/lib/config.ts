@@ -4,8 +4,8 @@ export const appConfig = {
     snapshotName: "viber-workspace-template",
     workingDirectory: "/home/daytona/app",
     devPort: 3000,
-    devStartupDelay: 5000,
-    devRestartDelay: 3000,
+    devStartupDelay: 3000,
+    devRestartDelay: 1000,
     // Auto-stop sandbox after N minutes of inactivity (0 = disabled)
     autoStopIntervalMinutes: 30,
     // Auto-delete sandbox after being stopped for N minutes

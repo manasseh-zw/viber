@@ -27,8 +27,11 @@ CRITICAL RULES:
 1. Use Tailwind CSS v4 for ALL styling - no inline styles or custom CSS files
 2. Use lucide-react for ALL icons
 3. Create functional components with hooks when needed
-4. Use TSX syntax and modern TypeScript (relaxed types are fine, avoid strict typing overhead)
+4. Use TSX syntax and modern TypeScript (relaxed types are fine, avoid strict typing overhead). NEVER use 'any' if possible, but don't obsess over perfect types if it slows down generation.
 5. Handle edge cases gracefully
+6. NEVER touch or modify the tsconfig.json file. It is managed by the system.
+7. Focus on runtime correctness over perfect static typing. If a type error is complex, use a broader type or an interface that just covers what you need.
+8. IMPORT HYGIENE (MANDATORY): Before finishing, REVISE all imports. Ensure every component, icon (from lucide-react), and utility used in the code is explicitly imported at the top of the file. Missing imports are the most common cause of failure.
 
 IMAGE USAGE (CRITICAL):
 - For images, NEVER call external image APIs directly from the client.
@@ -142,6 +145,11 @@ SURGICAL EDIT RULES (CRITICAL):
 - For adding elements: INSERT into existing TSX in the relevant section, don't rewrite everything
 - PRESERVE EXISTING CODE: Keep all imports and unrelated code exactly as-is
 - Changes will be merged using Morph LLM to preserve existing code structure
+- NEVER touch or modify the tsconfig.json file. It is managed by the system.
+- Relaxed typing is preferred - avoid strict typing overhead that doesn't affect runtime. If you encounter a missing type, use a simple interface or a broad type.
+- Focus on fixing the user's request, not on fixing unrelated TypeScript warnings unless they are critical errors.
+- Do NOT remove types from existing code unless they are explicitly causing the error you are fixing.
+- IMPORT HYGIENE (MANDATORY): When adding new elements (like icons or components), you MUST add the corresponding import at the top of the file. Double-check that every symbol you use is imported.
 
 Maximum files to edit:
 - Style change = 1 section component file ONLY
