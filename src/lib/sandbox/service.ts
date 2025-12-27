@@ -112,7 +112,8 @@ export async function getSandboxStatus(
 
 export async function applyFilesToSandbox(
   files: SandboxFile[],
-  sandboxId?: string
+  sandboxId?: string,
+  onProgress?: (current: number, total: number, fileName: string) => void
 ): Promise<{ success: boolean; appliedFiles: string[]; error?: string }> {
   try {
     const sandbox = sandboxId
@@ -131,33 +132,55 @@ export async function applyFilesToSandbox(
     // Only fetch file list if we have multiple files and might be editing
     const existingFiles = files.length > 1 ? await sandbox.files() : [];
 
+    // Separate new files from edits
+    const newFiles: SandboxFile[] = [];
+    const editFiles: SandboxFile[] = [];
+    
     for (const file of files) {
+      const fileExists = existingFiles.some(
+        (f) => f === file.path || f.endsWith(file.path)
+      );
+      if (fileExists) {
+        editFiles.push(file);
+      } else {
+        newFiles.push(file);
+      }
+    }
+
+    // Write new files in parallel (no merging needed)
+    if (newFiles.length > 0) {
+      console.log(`[applyFilesToSandbox] Writing ${newFiles.length} new files in parallel`);
+      await Promise.all(
+        newFiles.map(async (file, index) => {
+          onProgress?.(index + 1, files.length, file.path);
+          await sandbox.write(file.path, file.content);
+          appliedFiles.push(file.path);
+        })
+      );
+    }
+
+    // Process edits sequentially (require Gemini merging)
+    for (let i = 0; i < editFiles.length; i++) {
+      const file = editFiles[i];
+      onProgress?.(newFiles.length + i + 1, files.length, file.path);
+      
       try {
-        const fileExists = existingFiles.some(
-          (f) => f === file.path || f.endsWith(file.path)
+        console.log(
+          `[applyFilesToSandbox] Using Gemini to merge edits for: ${file.path}`
         );
+        const mergeResult = await applyGeminiEditToFile({
+          sandbox,
+          targetPath: file.path,
+          instructions: `Apply the following changes to the file`,
+          updateSnippet: file.content,
+        });
 
-        if (fileExists) {
-          console.log(
-            `[applyFilesToSandbox] Using Gemini to merge edits for: ${file.path}`
-          );
-          const mergeResult = await applyGeminiEditToFile({
-            sandbox,
-            targetPath: file.path,
-            instructions: `Apply the following changes to the file`,
-            updateSnippet: file.content,
-          });
-
-          if (mergeResult.success) {
-            appliedFiles.push(file.path);
-          } else {
-            console.warn(
-              `[applyFilesToSandbox] Gemini merge failed, falling back to direct write: ${mergeResult.error}`
-            );
-            await sandbox.write(file.path, file.content);
-            appliedFiles.push(file.path);
-          }
+        if (mergeResult.success) {
+          appliedFiles.push(file.path);
         } else {
+          console.warn(
+            `[applyFilesToSandbox] Gemini merge failed, falling back to direct write: ${mergeResult.error}`
+          );
           await sandbox.write(file.path, file.content);
           appliedFiles.push(file.path);
         }

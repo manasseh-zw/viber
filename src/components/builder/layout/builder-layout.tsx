@@ -146,8 +146,10 @@ export function BuilderLayout() {
       );
 
       // Start stabilization period to hide HMR transitions
+      // Use shorter duration for small edits, longer for full generations
+      const stabilizationDuration = generation.files.length <= 2 ? 8000 : 20000;
       setIsStabilizing(true);
-      setTimeout(() => setIsStabilizing(false), 20000); // 15 second stabilization
+      setTimeout(() => setIsStabilizing(false), stabilizationDuration);
 
       // Run diagnostics after application with a delay to let files settle
       if (sandbox.sandboxId) {

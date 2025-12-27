@@ -204,6 +204,10 @@ export function useGeneration() {
             const event = JSON.parse(line.slice(6));
 
             switch (event.type) {
+              case "heartbeat":
+                // Keep-alive message, ignore
+                break;
+
               case "status":
                 setState((prev) => ({ ...prev, progress: event.message }));
                 break;

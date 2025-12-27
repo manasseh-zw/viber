@@ -80,6 +80,8 @@ export const Route = createFileRoute("/api/generate/stream")({
         const stream = new ReadableStream({
           async start(controller) {
             let isClosed = false;
+            let lastSendTime = Date.now();
+            let keepAliveInterval: NodeJS.Timeout | null = null;
 
             const send = (data: object) => {
               if (isClosed || abortController.signal.aborted) return;
@@ -87,10 +89,19 @@ export const Route = createFileRoute("/api/generate/stream")({
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
                 );
+                lastSendTime = Date.now();
               } catch {
                 isClosed = true;
               }
             };
+
+            // Send keep-alive heartbeats every 5 seconds to prevent timeouts
+            keepAliveInterval = setInterval(() => {
+              const timeSinceLastSend = Date.now() - lastSendTime;
+              if (timeSinceLastSend > 4000 && !isClosed) {
+                send({ type: "heartbeat", message: "Generating..." });
+              }
+            }, 5000);
 
             try {
               console.log("[api/generate/stream] Creating generator", {
@@ -154,6 +165,9 @@ export const Route = createFileRoute("/api/generate/stream")({
                 });
               }
             } finally {
+              if (keepAliveInterval) {
+                clearInterval(keepAliveInterval);
+              }
               isClosed = true;
               try {
                 controller.close();
@@ -167,8 +181,9 @@ export const Route = createFileRoute("/api/generate/stream")({
         return new Response(stream, {
           headers: {
             "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-transform",
             Connection: "keep-alive",
+            "X-Accel-Buffering": "no", // Disable Nginx buffering
           },
         });
       },

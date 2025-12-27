@@ -75,7 +75,13 @@ export const Route = createFileRoute("/api/apply/stream")({
 
               const applyResult = await applyFilesToSandbox(
                 files.map((f) => ({ path: f.path, content: f.content })),
-                sandboxId
+                sandboxId,
+                (current, total, fileName) => {
+                  send({
+                    type: "status",
+                    message: `Applying ${current}/${total}: ${fileName.split('/').pop()}`,
+                  });
+                }
               );
 
               if (!applyResult.success) {
@@ -118,8 +124,9 @@ export const Route = createFileRoute("/api/apply/stream")({
         return new Response(stream, {
           headers: {
             "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-transform",
             Connection: "keep-alive",
+            "X-Accel-Buffering": "no",
           },
         });
       },
