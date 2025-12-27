@@ -131,7 +131,16 @@ export function VoiceAgent({
     globalVoiceAgent = {
       sendSystemUpdate: (message: string) => {
         if (conversation.status === "connected") {
-          conversation.sendUserMessage(`[SYSTEM] ${message}`);
+          try {
+            conversation.sendUserMessage(`[SYSTEM] ${message}`);
+          } catch (error) {
+            console.warn("[VoiceAgent] Failed to send system update:", error);
+          }
+        } else {
+          console.warn(
+            "[VoiceAgent] Cannot send message, status:",
+            conversation.status
+          );
         }
       },
       startSession: async () => {
@@ -143,7 +152,7 @@ export function VoiceAgent({
         try {
           await conversation.startSession({
             agentId: AGENT_ID,
-            connectionType: "websocket",
+            connectionType: "webrtc",
           });
         } catch (error) {
           console.error("[VoiceAgent] Failed to start session:", error);
