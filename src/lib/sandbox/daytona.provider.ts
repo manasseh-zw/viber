@@ -224,6 +224,10 @@ export default App`
 }`
     );
 
+    const hmrHost = PREVIEW_PROXY_DOMAIN
+      ? `${DEV_PORT}-${this.sandbox.id}.${PREVIEW_PROXY_DOMAIN}`
+      : `${DEV_PORT}-${this.sandbox.id}.proxy.daytona.works`;
+
     await this.write(
       "vite.config.ts",
       `import { defineConfig } from 'vite'
@@ -235,10 +239,13 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: ${DEV_PORT},
+    strictPort: true,
     allowedHosts: true,
     hmr: {
       protocol: 'wss',
+      host: '${hmrHost}',
       clientPort: 443,
+      timeout: 30000,
     },
     watch: {
       usePolling: true,

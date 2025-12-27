@@ -135,7 +135,7 @@ export async function applyFilesToSandbox(
     // Separate new files from edits
     const newFiles: SandboxFile[] = [];
     const editFiles: SandboxFile[] = [];
-    
+
     for (const file of files) {
       const fileExists = existingFiles.some(
         (f) => f === file.path || f.endsWith(file.path)
@@ -149,7 +149,9 @@ export async function applyFilesToSandbox(
 
     // Write new files in parallel (no merging needed)
     if (newFiles.length > 0) {
-      console.log(`[applyFilesToSandbox] Writing ${newFiles.length} new files in parallel`);
+      console.log(
+        `[applyFilesToSandbox] Writing ${newFiles.length} new files in parallel`
+      );
       await Promise.all(
         newFiles.map(async (file, index) => {
           onProgress?.(index + 1, files.length, file.path);
@@ -163,7 +165,7 @@ export async function applyFilesToSandbox(
     for (let i = 0; i < editFiles.length; i++) {
       const file = editFiles[i];
       onProgress?.(newFiles.length + i + 1, files.length, file.path);
-      
+
       try {
         console.log(
           `[applyFilesToSandbox] Using Gemini to merge edits for: ${file.path}`

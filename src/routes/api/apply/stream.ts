@@ -79,7 +79,7 @@ export const Route = createFileRoute("/api/apply/stream")({
                 (current, total, fileName) => {
                   send({
                     type: "status",
-                    message: `Applying ${current}/${total}: ${fileName.split('/').pop()}`,
+                    message: `Applying ${current}/${total}: ${fileName.split("/").pop()}`,
                   });
                 }
               );
@@ -133,4 +133,3 @@ export const Route = createFileRoute("/api/apply/stream")({
     },
   },
 });
-

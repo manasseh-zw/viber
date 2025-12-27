@@ -13,6 +13,7 @@ interface BuilderMainProps {
   isLoading: boolean;
   isApplying?: boolean;
   files: Record<string, string>;
+  previewRefreshTrigger?: number;
   onRefresh: () => void;
   isGenerating?: boolean;
   isStreaming?: boolean;
@@ -27,6 +28,7 @@ export function BuilderMain({
   isLoading,
   isApplying = false,
   files,
+  previewRefreshTrigger,
   onRefresh,
   isGenerating = false,
   isStreaming = false,
@@ -35,6 +37,13 @@ export function BuilderMain({
 }: BuilderMainProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("preview");
   const [iframeKey, setIframeKey] = useState(0);
+
+  // Auto-refresh iframe when trigger changes
+  useEffect(() => {
+    if (previewRefreshTrigger !== undefined && previewRefreshTrigger > 0) {
+      setIframeKey((prev) => prev + 1);
+    }
+  }, [previewRefreshTrigger]);
 
   useEffect(() => {
     if (isStreaming && activeTab === "preview") {

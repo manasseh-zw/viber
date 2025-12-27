@@ -32,6 +32,7 @@ export function BuilderLayout() {
   const generation = useGeneration();
   const voiceAgent = useVoiceAgentControls();
   const [isStabilizing, setIsStabilizing] = useState(false);
+  const [previewRefreshTrigger, setPreviewRefreshTrigger] = useState(0);
   const prevSandboxReady = useRef(false);
   const prevGenerating = useRef(false);
   const prevApplying = useRef(false);
@@ -147,9 +148,30 @@ export function BuilderLayout() {
 
       // Start stabilization period to hide HMR transitions
       // Use shorter duration for small edits, longer for full generations
-      const stabilizationDuration = generation.files.length <= 2 ? 8000 : 20000;
+      const stabilizationDuration = generation.files.length <= 2 ? 8000 : 13000;
       setIsStabilizing(true);
-      setTimeout(() => setIsStabilizing(false), stabilizationDuration);
+
+      // Wait for stabilization, then ping the dev server before refreshing
+      setTimeout(async () => {
+        // Ping the preview URL to ensure Vite is ready
+        if (sandbox.sandboxUrl) {
+          try {
+            await fetch(sandbox.sandboxUrl, {
+              method: "HEAD",
+              mode: "no-cors",
+            });
+            // Give it an extra moment for the bundle to be ready
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+          } catch (error) {
+            console.warn(
+              "[BuilderLayout] Preview ping failed, refreshing anyway"
+            );
+          }
+        }
+
+        setIsStabilizing(false);
+        setPreviewRefreshTrigger((prev) => prev + 1);
+      }, stabilizationDuration);
 
       // Run diagnostics after application with a delay to let files settle
       if (sandbox.sandboxId) {
@@ -225,6 +247,7 @@ export function BuilderLayout() {
         isLoading={sandbox.isCreating}
         isApplying={generation.isApplying || isStabilizing}
         files={sandbox.files}
+        previewRefreshTrigger={previewRefreshTrigger}
         onRefresh={() => sandbox.refreshFiles()}
         isGenerating={generation.isGenerating}
         isStreaming={generation.isStreaming}

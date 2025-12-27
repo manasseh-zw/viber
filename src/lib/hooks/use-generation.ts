@@ -377,7 +377,9 @@ export function useGeneration() {
   }, []);
 
   const checkDiagnostics = useCallback(
-    async (sandboxId?: string): Promise<{ success: boolean; output?: string }> => {
+    async (
+      sandboxId?: string
+    ): Promise<{ success: boolean; output?: string }> => {
       setState((prev) => ({
         ...prev,
         isChecking: true,
