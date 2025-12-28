@@ -29,7 +29,7 @@ export const appEnv = {
 
   // AI Configuration
   GEMINI_API_KEY: requireEnv("GEMINI_API_KEY"),
-  DEFAULT_MODEL: optionalEnv("DEFAULT_MODEL", "gemini-2.5-flash-lite"),
+  DEFAULT_MODEL: optionalEnv("DEFAULT_MODEL", "gemini-3-pro"),
 
   // Sandbox Configuration
   DAYTONA_API_KEY: requireEnv("DAYTONA_API_KEY"),

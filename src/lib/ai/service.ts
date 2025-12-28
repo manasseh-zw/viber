@@ -2,6 +2,7 @@ import { streamText } from "ai";
 import { getModel } from "./provider";
 import { buildSystemPrompt } from "./prompts";
 import { appConfig } from "../config";
+import { appEnv } from "../env/env.server";
 import type { GeneratedFile, AnyStreamEvent } from "../types/ai";
 
 export interface GenerateCodeOptions {
@@ -134,12 +135,20 @@ export async function generateCode(
 
     onEvent?.({ type: "status", message: "Starting code generation..." });
 
+    const selectedModel = model ?? appEnv.DEFAULT_MODEL ?? appConfig.ai.defaultModel;
     const result = await streamText({
       model: getModel(model),
       system: systemPrompt,
       prompt: fullPrompt,
       temperature: appConfig.ai.defaultTemperature,
       maxOutputTokens: appConfig.ai.maxTokens,
+      ...(selectedModel.includes("gemini-3") && {
+        providerOptions: {
+          google: {
+            thinkingLevel: "medium" as const,
+          },
+        },
+      }),
     });
 
     const parser = new IncrementalParser();
@@ -234,8 +243,9 @@ export async function* streamGenerateCode(
 
     yield { type: "status", message: "Starting code generation..." };
 
+    const selectedModel = model ?? appEnv.DEFAULT_MODEL ?? appConfig.ai.defaultModel;
     console.log("[AI Service] Calling LLM for code generation", {
-      model: model || "default",
+      model: selectedModel,
       temperature: appConfig.ai.defaultTemperature,
       maxTokens: appConfig.ai.maxTokens,
     });
@@ -246,6 +256,13 @@ export async function* streamGenerateCode(
       prompt: fullPrompt,
       temperature: appConfig.ai.defaultTemperature,
       maxOutputTokens: appConfig.ai.maxTokens,
+      ...(selectedModel.includes("gemini-3") && {
+        providerOptions: {
+          google: {
+            thinkingLevel: "medium" as const,
+          },
+        },
+      }),
     });
 
     console.log("[AI Service] LLM stream started, beginning to parse chunks");

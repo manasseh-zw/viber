@@ -29,7 +29,7 @@ export const appConfig = {
   },
 
   ai: {
-    defaultModel: "gemini-3-pro", // Best balance for default use
+    defaultModel: "gemini-3-pro", // Using Pro until Flash is available
     availableModels: [
       "gemini-3-pro",
       "gemini-3-flash",
