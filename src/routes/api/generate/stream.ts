@@ -42,9 +42,14 @@ export const Route = createFileRoute("/api/generate/stream")({
         let fileContext = context?.files;
 
         if (isEdit && sandboxId && !fileContext) {
-          console.log("[api/generate/stream] Fetching files from sandbox", {
-            sandboxId,
-          });
+          console.log(
+            "[api/generate/stream] Fetching files from sandbox for edit",
+            {
+              sandboxId,
+              isEdit,
+              hasContext: !!context?.files,
+            }
+          );
           try {
             const filesResult = await getSandboxFiles(sandboxId);
             if (filesResult.success && filesResult.files) {
@@ -54,19 +59,34 @@ export const Route = createFileRoute("/api/generate/stream")({
                 files: Object.keys(fileContext),
               });
             } else {
-              console.warn(
-                "[api/generate/stream] Failed to fetch sandbox files",
+              console.error(
+                "[api/generate/stream] Failed to fetch sandbox files - edit will proceed without context",
                 {
                   error: filesResult.error,
+                  sandboxId,
                 }
               );
+              // Don't fail the request, but log the error
             }
           } catch (error) {
             console.error(
-              "[api/generate/stream] Error fetching sandbox files",
-              error
+              "[api/generate/stream] Error fetching sandbox files - edit will proceed without context",
+              {
+                error: error instanceof Error ? error.message : String(error),
+                sandboxId,
+              }
             );
+            // Don't fail the request, but log the error
           }
+        } else if (isEdit && !sandboxId) {
+          console.warn(
+            "[api/generate/stream] Edit requested but no sandboxId provided",
+            { isEdit, sandboxId }
+          );
+        } else if (isEdit && fileContext) {
+          console.log("[api/generate/stream] Edit with provided context", {
+            fileCount: Object.keys(fileContext).length,
+          });
         }
 
         const encoder = new TextEncoder();

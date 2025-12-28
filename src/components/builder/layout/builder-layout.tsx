@@ -151,7 +151,12 @@ export function BuilderLayout() {
       voiceAgent.sendSystemUpdate("Saving your code to the project");
     }
 
-    if (!generation.isApplying && prevApplying.current && !generation.error) {
+    if (
+      !generation.isApplying &&
+      prevApplying.current &&
+      !generation.error &&
+      generation.files.length > 0
+    ) {
       toast.success("Code applied", {
         description: `${generation.files.length} file(s) updated`,
       });
@@ -224,13 +229,14 @@ export function BuilderLayout() {
   ]);
 
   useEffect(() => {
-    if (generation.error) {
+    if (generation.error && !prevGenerating.current && !prevApplying.current) {
+      // Only send error update if we're not in the middle of generation/application
       voiceAgent.sendSystemUpdate(
         "Something went wrong. Let me know if you'd like me to try again"
       );
       toast.error("Generation failed", { description: generation.error });
     }
-  }, [generation.error, voiceAgent]);
+  }, [generation.error, voiceAgent, prevGenerating, prevApplying]);
 
   useEffect(() => {
     if (

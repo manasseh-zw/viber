@@ -150,7 +150,7 @@ export function useGeneration() {
       ...prev,
       isGenerating: true,
       isStreaming: false,
-      progress: "Starting generation...",
+      progress: isEdit ? "Preparing edit..." : "Starting generation...",
       streamedCode: "",
       currentFile: null,
       files: [],

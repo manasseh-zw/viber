@@ -74,7 +74,19 @@ export function VoiceAgent({
           return "Error: Missing prompt parameter";
         }
 
-        const isEdit = action === "edit" && isReadyRef.current;
+        // For edits, require both action="edit" AND sandbox to be ready
+        // For creates, isEdit should be false
+        const isEdit = action === "edit";
+
+        if (isEdit && !isReadyRef.current) {
+          console.warn("[VoiceAgent] Edit requested but sandbox not ready");
+          return "Error: Sandbox is not ready yet. Please wait for the workspace to finish setting up.";
+        }
+
+        if (isEdit && !sandboxIdRef.current) {
+          console.warn("[VoiceAgent] Edit requested but no sandbox ID");
+          return "Error: No sandbox available. Please create a project first.";
+        }
 
         try {
           await onGenerateRef.current({
@@ -82,7 +94,13 @@ export function VoiceAgent({
             isEdit,
             sandboxId: sandboxIdRef.current,
           });
-          return "Generation started successfully. I will provide updates as files are created.";
+
+          // Return different messages for edits vs creates
+          if (isEdit) {
+            return "Starting to make those changes now.";
+          } else {
+            return "Generation started successfully. I will provide updates as files are created.";
+          }
         } catch (error) {
           console.error("[VoiceAgent] Generation error:", error);
           return `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
