@@ -85,9 +85,66 @@ Which files need to be edited? Return JSON:
 
     const analysis = JSON.parse(jsonMatch[0]) as FileSelectionResult;
 
-    const validatedFiles = analysis.targetFiles.filter((f) =>
-      fileList.some((existing) => existing.includes(f) || f.includes(existing))
-    );
+    // Normalize paths for comparison (remove leading/trailing slashes, handle relative paths)
+    const normalizePath = (path: string): string => {
+      return path.trim().replace(/^\/+|\/+$/g, "");
+    };
+
+    // Use exact path matching to avoid false positives from substring matches
+    // Try multiple matching strategies in order of specificity
+    const validatedFiles = analysis.targetFiles
+      .map((targetPath) => {
+        const normalizedTarget = normalizePath(targetPath);
+
+        // Strategy 1: Exact match
+        let match = fileList.find((existing) => existing === targetPath);
+        if (match) return match;
+
+        // Strategy 2: Normalized exact match (handles leading/trailing slash differences)
+        match = fileList.find(
+          (existing) => normalizePath(existing) === normalizedTarget
+        );
+        if (match) return match;
+
+        // Strategy 3: Ends-with match for full paths (LLM might return "src/App.tsx" when actual is "/home/user/app/src/App.tsx")
+        // Only use this if target contains path separators to avoid false positives
+        if (normalizedTarget.includes("/")) {
+          match = fileList.find((existing) =>
+            existing.endsWith(normalizedTarget)
+          );
+          if (match) return match;
+        }
+
+        // Strategy 4: Filename-only match (only if target is just a filename without path)
+        // This is risky, so we only use it if there's exactly one match to avoid false positives
+        if (!normalizedTarget.includes("/")) {
+          const filenameMatches = fileList.filter((existing) => {
+            const existingFileName = existing.split("/").pop();
+            return existingFileName === normalizedTarget;
+          });
+          // Only use filename match if there's exactly one file with that name
+          // Prefer files in common locations (src/, src/components/) over nested paths
+          if (filenameMatches.length === 1) {
+            return filenameMatches[0];
+          } else if (filenameMatches.length > 1) {
+            // If multiple matches, prefer the most common location
+            const preferredMatch = filenameMatches.find(
+              (f) => f.includes("src/components/") || f.includes("src/")
+            );
+            if (preferredMatch) return preferredMatch;
+            // Otherwise return first match (but log warning)
+            console.warn(
+              `[LLM Intent Analyzer] Multiple files found for "${normalizedTarget}", using first match: ${filenameMatches[0]}`
+            );
+            return filenameMatches[0];
+          }
+        }
+
+        return null;
+      })
+      .filter((f): f is string => f !== null)
+      // Remove duplicates (in case multiple strategies matched the same file)
+      .filter((value, index, self) => self.indexOf(value) === index);
 
     if (validatedFiles.length === 0) {
       console.warn(
