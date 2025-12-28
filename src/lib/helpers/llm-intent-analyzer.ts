@@ -1,152 +1,184 @@
 import { generateText } from "ai";
 import { getModel } from "../ai/provider";
-import type { FileManifest, EditIntent, EditType } from "../types/files";
-import { analyzeEditIntent } from "./intent-analyzer";
 
 const INTENT_MODEL = "gemini-2.5-flash";
 
-interface IntentAnalysisResult {
-  type: EditType;
-  isCreatingNew: boolean;
-  isEditingExisting: boolean;
-  targetComponentNames: string[];
-  targetFilePaths: string[];
+export interface FileSelectionResult {
+  targetFiles: string[];
+  editType: string;
   description: string;
   confidence: number;
 }
 
-export async function analyzeIntentWithLLM(
+export async function selectFilesForEdit(
   prompt: string,
-  manifest: FileManifest
-): Promise<EditIntent> {
-  console.log("[LLM Intent Analyzer] Starting intent analysis", {
+  fileList: string[]
+): Promise<FileSelectionResult> {
+  console.log("[LLM Intent Analyzer] Starting file selection", {
     prompt: prompt.substring(0, 100),
-    filesCount: Object.keys(manifest.files).length,
-    entryPoint: manifest.entryPoint,
+    filesCount: fileList.length,
   });
 
+  const startTime = Date.now();
+
   try {
-    const fileList = Object.keys(manifest.files)
-      .slice(0, 20)
+    const formattedFileList = fileList
+      .filter((f) => !f.includes("node_modules") && !f.includes(".git"))
+      .slice(0, 30)
       .map((path) => {
-        const file = manifest.files[path];
-        const componentName =
-          file.componentInfo?.name || path.split("/").pop() || "";
-        return { path, componentName, type: file.type };
-      });
+        const fileName = path.split("/").pop() || path;
+        const isComponent = /^[A-Z]/.test(
+          fileName.replace(/\.(jsx?|tsx?)$/, "")
+        );
+        return `- ${path}${isComponent ? " (component)" : ""}`;
+      })
+      .join("\n");
 
-    console.log("[LLM Intent Analyzer] File list prepared", {
-      fileCount: fileList.length,
-      files: fileList.map((f) => f.path),
-    });
+    const systemPrompt = `You are an expert at analyzing code edit requests. Given a user's edit prompt and a list of project files, determine which files need to be modified.
 
-    const systemPrompt = `You are an expert at analyzing user intent for code generation tasks. Analyze the user's prompt and determine their intent.
+RULES:
+1. Select ONLY the files that need to be edited - usually 1-3 files max
+2. For style changes (colors, fonts, spacing), select the specific component file
+3. For "header" edits, look for Header.tsx/jsx, not App.tsx
+4. For "footer" edits, look for Footer.tsx/jsx
+5. For adding new features, you may need App.tsx to import the new component
+6. Be surgical - don't select files that don't need changes
 
-Available Edit Types:
-- UPDATE_COMPONENT: User wants to modify an existing component/page
-- ADD_FEATURE: User wants to create a new feature/component/page
-- FIX_ISSUE: User wants to fix a bug or error
-- UPDATE_STYLE: User wants to change styling/colors/theming
-- REFACTOR: User wants to refactor/clean up code
-- FULL_REBUILD: User wants to rebuild everything from scratch
-- ADD_DEPENDENCY: User wants to install/add a package
+Edit Types:
+- UPDATE_COMPONENT: Modifying existing component
+- UPDATE_STYLE: Changing colors, fonts, spacing
+- ADD_FEATURE: Creating new component/feature
+- FIX_ISSUE: Fixing a bug
+- FULL_REBUILD: Complete rebuild (rare)
 
-Available files in project:
-${fileList.map((f) => `- ${f.path} (${f.componentName})`).join("\n")}
-
-Analyze the user's intent and return:
-1. The most appropriate EditType
-2. Whether they're creating something new or editing existing
-3. Target component/file names mentioned
-4. Target file paths (match from available files if editing, or suggest new paths if creating)
-5. A clear description
-6. Confidence level (0-1)
-
-If creating new features, suggest appropriate file paths like "src/components/FeatureName.jsx".
-If editing existing, match to actual file paths from the available files.`;
-
-    console.log("[LLM Intent Analyzer] Calling LLM for intent analysis", {
-      model: INTENT_MODEL,
-      promptLength: prompt.length,
-    });
+Return ONLY valid JSON.`;
 
     const result = await generateText({
       model: getModel(INTENT_MODEL),
       system: systemPrompt,
-      prompt: `User prompt: "${prompt}"
+      prompt: `User wants to: "${prompt}"
 
-Analyze this prompt and determine the user's intent. Return ONLY valid JSON in this exact format:
+Available files:
+${formattedFileList}
+
+Which files need to be edited? Return JSON:
 {
-  "type": "UPDATE_COMPONENT" | "ADD_FEATURE" | "FIX_ISSUE" | "UPDATE_STYLE" | "REFACTOR" | "FULL_REBUILD" | "ADD_DEPENDENCY",
-  "isCreatingNew": boolean,
-  "isEditingExisting": boolean,
-  "targetComponentNames": string[],
-  "targetFilePaths": string[],
-  "description": string,
-  "confidence": number (0-1)
+  "targetFiles": ["path/to/file1.tsx", "path/to/file2.tsx"],
+  "editType": "UPDATE_COMPONENT",
+  "description": "Brief description of what will be changed",
+  "confidence": 0.9
 }`,
-      temperature: 0.3,
+      temperature: 0.2,
     });
 
+    const elapsed = Date.now() - startTime;
     console.log("[LLM Intent Analyzer] LLM response received", {
+      elapsed: `${elapsed}ms`,
       responseLength: result.text.length,
-      responsePreview: result.text.substring(0, 200),
     });
 
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("[LLM Intent Analyzer] No JSON found in response", {
-        fullResponse: result.text,
-      });
-      throw new Error("No JSON found in response");
+      console.warn("[LLM Intent Analyzer] No JSON found, using fallback");
+      return fallbackFileSelection(prompt, fileList);
     }
 
-    const analysis = JSON.parse(jsonMatch[0]) as IntentAnalysisResult;
-    console.log("[LLM Intent Analyzer] Parsed analysis result", {
-      type: analysis.type,
-      isCreatingNew: analysis.isCreatingNew,
-      isEditingExisting: analysis.isEditingExisting,
-      targetComponentNames: analysis.targetComponentNames,
-      targetFilePaths: analysis.targetFilePaths,
-      description: analysis.description,
-      confidence: analysis.confidence,
-    });
+    const analysis = JSON.parse(jsonMatch[0]) as FileSelectionResult;
 
-    const targetFiles =
-      analysis.targetFilePaths.length > 0
-        ? analysis.targetFilePaths
-        : analysis.isCreatingNew
-          ? []
-          : [manifest.entryPoint];
+    const validatedFiles = analysis.targetFiles.filter((f) =>
+      fileList.some((existing) => existing.includes(f) || f.includes(existing))
+    );
 
-    const suggestedContext = Object.keys(manifest.files)
-      .filter((file) => !targetFiles.includes(file))
-      .slice(0, 10);
+    if (validatedFiles.length === 0) {
+      console.warn(
+        "[LLM Intent Analyzer] No valid files matched, using fallback"
+      );
+      return fallbackFileSelection(prompt, fileList);
+    }
 
-    const finalIntent: EditIntent = {
-      type: analysis.type as EditType,
-      targetFiles,
-      confidence: analysis.confidence,
-      description: analysis.description,
-      suggestedContext,
+    const finalResult: FileSelectionResult = {
+      targetFiles: validatedFiles,
+      editType: analysis.editType || "UPDATE_COMPONENT",
+      description: analysis.description || "Edit files",
+      confidence: analysis.confidence || 0.8,
     };
 
-    console.log("[LLM Intent Analyzer] Intent analysis complete", {
-      finalIntent,
-      targetFilesCount: targetFiles.length,
-      contextFilesCount: suggestedContext.length,
+    console.log("[LLM Intent Analyzer] File selection complete", {
+      elapsed: `${elapsed}ms`,
+      targetFiles: finalResult.targetFiles,
+      editType: finalResult.editType,
     });
 
-    return finalIntent;
+    return finalResult;
   } catch (error) {
-    console.error("[LLM Intent Analyzer] Failed, falling back to regex", {
+    console.error("[LLM Intent Analyzer] Error, using fallback", {
       error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
     });
-    const fallbackIntent = analyzeEditIntent(prompt, manifest);
-    console.log("[LLM Intent Analyzer] Fallback regex intent", {
-      fallbackIntent,
-    });
-    return fallbackIntent;
+    return fallbackFileSelection(prompt, fileList);
   }
+}
+
+function fallbackFileSelection(
+  prompt: string,
+  fileList: string[]
+): FileSelectionResult {
+  const lowerPrompt = prompt.toLowerCase();
+  const targetFiles: string[] = [];
+
+  const componentKeywords = [
+    "header",
+    "footer",
+    "hero",
+    "nav",
+    "sidebar",
+    "menu",
+    "card",
+    "button",
+    "modal",
+    "form",
+    "about",
+    "contact",
+    "features",
+    "pricing",
+    "testimonials",
+    "services",
+    "team",
+    "gallery",
+  ];
+
+  for (const keyword of componentKeywords) {
+    if (lowerPrompt.includes(keyword)) {
+      const matchingFile = fileList.find((f) => {
+        const fileName = f.split("/").pop()?.toLowerCase() || "";
+        return fileName.includes(keyword);
+      });
+      if (matchingFile) {
+        targetFiles.push(matchingFile);
+        break;
+      }
+    }
+  }
+
+  if (targetFiles.length === 0) {
+    const appFile = fileList.find(
+      (f) => f.endsWith("App.tsx") || f.endsWith("App.jsx")
+    );
+    if (appFile) {
+      targetFiles.push(appFile);
+    }
+  }
+
+  const cssFile = fileList.find(
+    (f) => f.endsWith("index.css") || f.endsWith("globals.css")
+  );
+  if (cssFile && lowerPrompt.match(/style|color|theme|css|font|background/)) {
+    targetFiles.push(cssFile);
+  }
+
+  return {
+    targetFiles,
+    editType: "UPDATE_COMPONENT",
+    description: "Fallback file selection",
+    confidence: 0.5,
+  };
 }

@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { streamGenerateCode } from "../../../lib/ai/service";
-import { getSandboxFiles } from "../../../lib/sandbox/service";
+import {
+  getSandboxFileList,
+  getSandboxFileContents,
+} from "../../../lib/sandbox/service";
+import { selectFilesForEdit } from "../../../lib/helpers/llm-intent-analyzer";
 import type { GenerateCodeRequest } from "../../../lib/types/ai";
 
 export const Route = createFileRoute("/api/generate/stream")({
@@ -42,41 +46,77 @@ export const Route = createFileRoute("/api/generate/stream")({
         let fileContext = context?.files;
 
         if (isEdit && sandboxId && !fileContext) {
-          console.log(
-            "[api/generate/stream] Fetching files from sandbox for edit",
-            {
-              sandboxId,
-              isEdit,
-              hasContext: !!context?.files,
-            }
-          );
+          console.log("[api/generate/stream] Smart file selection for edit", {
+            sandboxId,
+          });
+
           try {
-            const filesResult = await getSandboxFiles(sandboxId);
-            if (filesResult.success && filesResult.files) {
-              fileContext = filesResult.files;
-              console.log("[api/generate/stream] Files fetched from sandbox", {
-                fileCount: Object.keys(fileContext).length,
-                files: Object.keys(fileContext),
+            const fileListResult = await getSandboxFileList(sandboxId);
+
+            if (fileListResult.success && fileListResult.files) {
+              console.log("[api/generate/stream] Got file list", {
+                fileCount: fileListResult.files.length,
               });
+
+              const intentResult = await selectFilesForEdit(
+                prompt,
+                fileListResult.files
+              );
+
+              console.log("[api/generate/stream] Intent analysis complete", {
+                targetFiles: intentResult.targetFiles,
+                editType: intentResult.editType,
+                confidence: intentResult.confidence,
+              });
+
+              if (intentResult.targetFiles.length > 0) {
+                const contentsResult = await getSandboxFileContents(
+                  intentResult.targetFiles,
+                  sandboxId
+                );
+
+                if (contentsResult.success && contentsResult.files) {
+                  fileContext = contentsResult.files;
+                  console.log(
+                    "[api/generate/stream] Fetched targeted file contents",
+                    {
+                      fileCount: Object.keys(fileContext).length,
+                      files: Object.keys(fileContext),
+                    }
+                  );
+                }
+              }
+
+              if (!fileContext || Object.keys(fileContext).length === 0) {
+                console.warn(
+                  "[api/generate/stream] No files selected, fetching App.tsx as fallback"
+                );
+                const appFile = fileListResult.files.find(
+                  (f) => f.endsWith("App.tsx") || f.endsWith("App.jsx")
+                );
+                if (appFile) {
+                  const fallbackResult = await getSandboxFileContents(
+                    [appFile],
+                    sandboxId
+                  );
+                  if (fallbackResult.success && fallbackResult.files) {
+                    fileContext = fallbackResult.files;
+                  }
+                }
+              }
             } else {
               console.error(
-                "[api/generate/stream] Failed to fetch sandbox files - edit will proceed without context",
-                {
-                  error: filesResult.error,
-                  sandboxId,
-                }
+                "[api/generate/stream] Failed to get file list",
+                fileListResult.error
               );
-              // Don't fail the request, but log the error
             }
           } catch (error) {
             console.error(
-              "[api/generate/stream] Error fetching sandbox files - edit will proceed without context",
+              "[api/generate/stream] Error in smart file selection",
               {
                 error: error instanceof Error ? error.message : String(error),
-                sandboxId,
               }
             );
-            // Don't fail the request, but log the error
           }
         } else if (isEdit && !sandboxId) {
           console.warn(
@@ -126,7 +166,9 @@ export const Route = createFileRoute("/api/generate/stream")({
             try {
               console.log("[api/generate/stream] Creating generator", {
                 isEdit: isEdit ?? false,
-                hasFileContext: !!context?.files,
+                hasFileContext:
+                  !!fileContext && Object.keys(fileContext).length > 0,
+                fileContextKeys: fileContext ? Object.keys(fileContext) : [],
               });
 
               const generator = streamGenerateCode({

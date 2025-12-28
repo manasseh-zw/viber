@@ -168,7 +168,7 @@ export function BuilderLayout() {
 
       // Start stabilization period to hide HMR transitions
       // Use shorter duration for small edits, longer for full generations
-      const stabilizationDuration = generation.files.length <= 2 ? 8000 : 13000;
+      const stabilizationDuration = generation.files.length <= 4 ? 8000 : 13000;
       setIsStabilizing(true);
 
       // Wait for stabilization, then ping the dev server before refreshing

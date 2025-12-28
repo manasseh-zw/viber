@@ -47,6 +47,64 @@ export async function createNewSandbox(): Promise<CreateSandboxResult> {
   }
 }
 
+export async function getSandboxFileList(
+  sandboxId?: string
+): Promise<{ success: boolean; files?: string[]; error?: string }> {
+  try {
+    const sandbox = sandboxId
+      ? sandboxManager.get(sandboxId)
+      : sandboxManager.getActive();
+
+    if (!sandbox) {
+      return { success: false, error: "No active sandbox" };
+    }
+
+    const fileList = await sandbox.files();
+    return { success: true, files: fileList };
+  } catch (error) {
+    console.error("Error getting sandbox file list:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+export async function getSandboxFileContents(
+  filePaths: string[],
+  sandboxId?: string
+): Promise<SandboxFilesResult> {
+  try {
+    const sandbox = sandboxId
+      ? sandboxManager.get(sandboxId)
+      : sandboxManager.getActive();
+
+    if (!sandbox) {
+      return { success: false, error: "No active sandbox" };
+    }
+
+    const fileContents: Record<string, string> = {};
+
+    await Promise.all(
+      filePaths.map(async (file) => {
+        try {
+          fileContents[file] = await sandbox.read(file);
+        } catch {
+          // Skip unreadable files
+        }
+      })
+    );
+
+    return { success: true, files: fileContents };
+  } catch (error) {
+    console.error("Error getting sandbox file contents:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
 export async function getSandboxFiles(
   sandboxId?: string
 ): Promise<SandboxFilesResult> {
@@ -62,13 +120,15 @@ export async function getSandboxFiles(
     const fileList = await sandbox.files();
     const fileContents: Record<string, string> = {};
 
-    for (const file of fileList) {
-      try {
-        fileContents[file] = await sandbox.read(file);
-      } catch {
-        // Skip unreadable files
-      }
-    }
+    await Promise.all(
+      fileList.map(async (file) => {
+        try {
+          fileContents[file] = await sandbox.read(file);
+        } catch {
+          // Skip unreadable files
+        }
+      })
+    );
 
     return { success: true, files: fileContents };
   } catch (error) {

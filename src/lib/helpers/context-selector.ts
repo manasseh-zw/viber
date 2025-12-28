@@ -1,6 +1,6 @@
 import type { FileManifest, EditIntent, EditType } from "../types/files";
 import { EditType as ET } from "../types/files";
-import { analyzeIntentWithLLM } from "./llm-intent-analyzer";
+import { analyzeEditIntent } from "./intent-analyzer";
 import {
   getEditExamplesPrompt,
   getComponentPatternPrompt,
@@ -23,7 +23,7 @@ export async function selectFilesForEdit(
     entryPoint: manifest.entryPoint,
   });
 
-  const editIntent = await analyzeIntentWithLLM(userPrompt, manifest);
+  const editIntent = analyzeEditIntent(userPrompt, manifest);
 
   console.log("[Context Selector] Intent analysis complete", {
     editIntent,
