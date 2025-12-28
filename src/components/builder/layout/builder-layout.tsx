@@ -33,6 +33,7 @@ export function BuilderLayout() {
   const voiceAgent = useVoiceAgentControls();
   const [isStabilizing, setIsStabilizing] = useState(false);
   const [previewRefreshTrigger, setPreviewRefreshTrigger] = useState(0);
+  const [activePanel, setActivePanel] = useState<"preview" | "code">("preview");
   const prevSandboxReady = useRef(false);
   const prevGenerating = useRef(false);
   const prevApplying = useRef(false);
@@ -40,8 +41,22 @@ export function BuilderLayout() {
   const fileCountRef = useRef(0);
 
   const handleNavigate = useCallback(
-    (panel: "preview" | "code" | "files", file?: string) => {
-      console.log("[BuilderLayout] Navigate to:", panel, file);
+    (
+      panel: "preview" | "code" | "files"
+    ): { success: boolean; message: string } => {
+      console.log("[BuilderLayout] Navigate to panel:", panel);
+
+      if (panel === "preview") {
+        setActivePanel("preview");
+        return { success: true, message: "Switched to preview" };
+      }
+
+      if (panel === "code") {
+        setActivePanel("code");
+        return { success: true, message: "Switched to code view" };
+      }
+
+      return { success: true, message: `Navigated to ${panel}` };
     },
     []
   );
@@ -253,6 +268,8 @@ export function BuilderLayout() {
         isStreaming={generation.isStreaming}
         currentFile={generation.currentFile}
         streamingFiles={generation.streamingFiles}
+        activePanel={activePanel}
+        onPanelChange={setActivePanel}
       />
     </div>
   );

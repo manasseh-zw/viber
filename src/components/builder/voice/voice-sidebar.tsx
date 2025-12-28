@@ -14,8 +14,13 @@ import { VoiceAgent, useVoiceAgentControls } from "./voice-agent";
 import { cn } from "@/lib/utils";
 import type { GenerateOptions } from "@/lib/hooks/use-generation";
 
+interface NavigateResult {
+  success: boolean;
+  message: string;
+}
+
 interface VoiceSidebarProps {
-  onNavigate: (panel: "preview" | "code" | "files", file?: string) => void;
+  onNavigate: (panel: "preview" | "code" | "files") => NavigateResult;
   onGenerate: (options: GenerateOptions) => Promise<void>;
   sandboxId?: string;
   isReady: boolean;
@@ -71,7 +76,7 @@ export function VoiceSidebar({
     if (!isReady) return "Setting up workspace...";
     if (isGenerating) return "Generating code...";
     if (isApplying) return "Applying changes...";
-    if (status === "connected") return "Daniel is listening";
+    if (status === "connected") return "Jess is listening";
     if (status === "connecting") return "Connecting...";
     return "Ready to start";
   };

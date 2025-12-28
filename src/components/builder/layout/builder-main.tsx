@@ -19,6 +19,8 @@ interface BuilderMainProps {
   isStreaming?: boolean;
   currentFile?: StreamingFile | null;
   streamingFiles?: StreamingFile[];
+  activePanel?: "preview" | "code";
+  onPanelChange?: (panel: "preview" | "code") => void;
 }
 
 type ActiveTab = "preview" | "code";
@@ -34,8 +36,12 @@ export function BuilderMain({
   isStreaming = false,
   currentFile = null,
   streamingFiles = [],
+  activePanel,
+  onPanelChange,
 }: BuilderMainProps) {
-  const [activeTab, setActiveTab] = useState<ActiveTab>("preview");
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    activePanel || "preview"
+  );
   const [iframeKey, setIframeKey] = useState(0);
 
   // Auto-refresh iframe when trigger changes
@@ -44,6 +50,12 @@ export function BuilderMain({
       setIframeKey((prev) => prev + 1);
     }
   }, [previewRefreshTrigger]);
+
+  useEffect(() => {
+    if (activePanel !== undefined && activePanel !== activeTab) {
+      setActiveTab(activePanel);
+    }
+  }, [activePanel]);
 
   useEffect(() => {
     if (isStreaming && activeTab === "preview") {
@@ -68,7 +80,11 @@ export function BuilderMain({
       <GlowingBorder active={isGenerating}>
         <Tabs
           value={activeTab}
-          onValueChange={(value) => setActiveTab(value as ActiveTab)}
+          onValueChange={(value) => {
+            const newTab = value as ActiveTab;
+            setActiveTab(newTab);
+            onPanelChange?.(newTab);
+          }}
           className="flex-1 flex flex-col overflow-hidden gap-0"
         >
           {/* Tab bar */}

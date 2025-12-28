@@ -11,10 +11,15 @@ interface AgentMessage {
   timestamp: Date;
 }
 
+interface NavigateResult {
+  success: boolean;
+  message: string;
+}
+
 interface VoiceAgentProps {
   onStatusChange: (status: "disconnected" | "connecting" | "connected") => void;
   onMessage: (message: AgentMessage) => void;
-  onNavigate: (panel: "preview" | "code" | "files", file?: string) => void;
+  onNavigate: (panel: "preview" | "code" | "files") => NavigateResult;
   onGenerate: (options: GenerateOptions) => Promise<void>;
   sandboxId?: string;
   isReady: boolean;
@@ -27,7 +32,6 @@ interface VibeBuildParams {
 
 interface NavigateUiParams {
   panel: "preview" | "code" | "files";
-  file?: string;
 }
 
 let globalVoiceAgent: {
@@ -85,13 +89,13 @@ export function VoiceAgent({
         }
       },
 
-      navigate_ui: ({ panel, file }: NavigateUiParams) => {
-        console.log("[VoiceAgent] navigate_ui called");
-        console.log("[VoiceAgent] panel:", panel);
-        console.log("[VoiceAgent] file:", file);
+      navigate_ui: ({ panel }: NavigateUiParams) => {
+        console.log("[VoiceAgent] navigate_ui called", { panel });
 
-        onNavigate(panel, file);
-        return `Navigated to ${panel} view${file ? ` showing ${file}` : ""}`;
+        const result = onNavigate(panel);
+        console.log("[VoiceAgent] navigate_ui result:", result);
+
+        return result.message;
       },
     },
 
@@ -152,7 +156,7 @@ export function VoiceAgent({
         try {
           await conversation.startSession({
             agentId: AGENT_ID,
-            connectionType: "webrtc",
+            connectionType: "websocket",
           });
         } catch (error) {
           console.error("[VoiceAgent] Failed to start session:", error);
