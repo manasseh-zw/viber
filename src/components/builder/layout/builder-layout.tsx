@@ -27,6 +27,34 @@ function getVoiceFriendlyFileName(path: string): string {
   return `the ${words} file`;
 }
 
+function getWorkingOnMessage(friendlyName: string): string {
+  const messages = [
+    `Working on ${friendlyName} now`,
+    `Moving on to ${friendlyName}`,
+    `Now I'm tackling ${friendlyName}`,
+    `Starting on ${friendlyName}`,
+    `Getting ${friendlyName} set up`,
+    `Building out ${friendlyName}`,
+    `Putting together ${friendlyName}`,
+    `Setting up ${friendlyName}`,
+  ];
+  return messages[Math.floor(Math.random() * messages.length)];
+}
+
+function getFinishedMessage(friendlyName: string): string {
+  const messages = [
+    `Just finished ${friendlyName}`,
+    `Done with ${friendlyName}`,
+    `Finished up ${friendlyName}`,
+    `Completed ${friendlyName}`,
+    `Wrapped up ${friendlyName}`,
+    `Got ${friendlyName} done`,
+    `${friendlyName} is ready`,
+    `Finished putting together ${friendlyName}`,
+  ];
+  return messages[Math.floor(Math.random() * messages.length)];
+}
+
 export function BuilderLayout() {
   const sandbox = useSandbox();
   const generation = useGeneration();
@@ -38,7 +66,7 @@ export function BuilderLayout() {
   const prevGenerating = useRef(false);
   const prevApplying = useRef(false);
   const lastFileUpdateRef = useRef<string | null>(null);
-  const fileCountRef = useRef(0);
+  const completedFilesRef = useRef<Set<string>>(new Set());
 
   const handleNavigate = useCallback(
     (
@@ -105,26 +133,33 @@ export function BuilderLayout() {
 
   useEffect(() => {
     if (generation.isGenerating && !prevGenerating.current) {
-      voiceAgent.sendSystemUpdate("Started building your app");
+      voiceAgent.sendSystemUpdate("Alright, let me build that for you");
+      completedFilesRef.current.clear();
       lastFileUpdateRef.current = null;
-      fileCountRef.current = 0;
     }
 
+    // Send update when files complete (track via streamingFiles)
+    // This provides granular, meaningful updates throughout generation
+    generation.streamingFiles.forEach((file) => {
+      if (!completedFilesRef.current.has(file.path)) {
+        completedFilesRef.current.add(file.path);
+        const friendlyName = getVoiceFriendlyFileName(file.path);
+        voiceAgent.sendSystemUpdate(getFinishedMessage(friendlyName));
+      }
+    });
+
+    // Also send update when a new file starts streaming (if it hasn't completed yet)
+    // This helps during long generations where files take time to complete
     if (
       generation.currentFile &&
-      generation.currentFile.path !== lastFileUpdateRef.current
+      generation.currentFile.path !== lastFileUpdateRef.current &&
+      !completedFilesRef.current.has(generation.currentFile.path)
     ) {
       lastFileUpdateRef.current = generation.currentFile.path;
-      fileCountRef.current++;
-
-      if (fileCountRef.current <= 3) {
-        const friendlyName = getVoiceFriendlyFileName(
-          generation.currentFile.path
-        );
-        voiceAgent.sendSystemUpdate(`Working on ${friendlyName}`);
-      } else if (fileCountRef.current === 4) {
-        voiceAgent.sendSystemUpdate("Creating additional files");
-      }
+      const friendlyName = getVoiceFriendlyFileName(
+        generation.currentFile.path
+      );
+      voiceAgent.sendSystemUpdate(getWorkingOnMessage(friendlyName));
     }
 
     if (
@@ -134,7 +169,7 @@ export function BuilderLayout() {
     ) {
       const fileWord = generation.files.length === 1 ? "file" : "files";
       voiceAgent.sendSystemUpdate(
-        `Done generating. Created ${generation.files.length} ${fileWord}`
+        `Got it. Created ${generation.files.length} ${fileWord} for you`
       );
     }
 
@@ -142,13 +177,14 @@ export function BuilderLayout() {
   }, [
     generation.isGenerating,
     generation.currentFile,
+    generation.streamingFiles,
     generation.files.length,
     voiceAgent,
   ]);
 
   useEffect(() => {
     if (generation.isApplying && !prevApplying.current) {
-      voiceAgent.sendSystemUpdate("Saving your code to the project");
+      voiceAgent.sendSystemUpdate("Just saving that to the project now");
     }
 
     if (
@@ -163,7 +199,7 @@ export function BuilderLayout() {
       sandbox.refreshFiles();
 
       voiceAgent.sendSystemUpdate(
-        "Finished generating and applying your code. Your app should appear in the preview in a few seconds"
+        "All set. Your app is loading in the preview now, should be ready in a few seconds"
       );
 
       // Start stabilization period to hide HMR transitions
@@ -171,26 +207,39 @@ export function BuilderLayout() {
       const stabilizationDuration = generation.files.length <= 4 ? 8000 : 13000;
       setIsStabilizing(true);
 
-      // Wait for stabilization, then ping the dev server before refreshing
+      // Start preview refresh process 5 seconds before stabilization ends
+      // This ensures the preview is ready when the loader disappears
+      const previewRefreshDelay = Math.max(0, stabilizationDuration - 5000);
+
       setTimeout(async () => {
-        // Ping the preview URL to ensure Vite is ready
+        // Ping the preview URL to ensure Vite is ready and trigger HMR
         if (sandbox.sandboxUrl) {
           try {
             await fetch(sandbox.sandboxUrl, {
               method: "HEAD",
               mode: "no-cors",
             });
-            // Give it an extra moment for the bundle to be ready
+            // Give it a moment for the bundle to be ready
             await new Promise((resolve) => setTimeout(resolve, 2000));
+
+            // Trigger the preview refresh in the background
+            setPreviewRefreshTrigger((prev) => prev + 1);
           } catch (error) {
             console.warn(
               "[BuilderLayout] Preview ping failed, refreshing anyway"
             );
+            // Still refresh even if ping fails
+            setPreviewRefreshTrigger((prev) => prev + 1);
           }
+        } else {
+          // No URL yet, just trigger refresh
+          setPreviewRefreshTrigger((prev) => prev + 1);
         }
+      }, previewRefreshDelay);
 
+      // Hide loader after full stabilization period
+      setTimeout(() => {
         setIsStabilizing(false);
-        setPreviewRefreshTrigger((prev) => prev + 1);
       }, stabilizationDuration);
 
       // Run diagnostics after application with a delay to let files settle
@@ -209,9 +258,7 @@ export function BuilderLayout() {
               });
               // We no longer auto-fix to prevent cyclic generations and token burn
             } else {
-              voiceAgent.sendSystemUpdate(
-                "All done! Your app is ready to preview"
-              );
+              voiceAgent.sendSystemUpdate("All done. Want to take a look?");
             }
           });
         }, 5000); // 5 second delay
@@ -232,7 +279,7 @@ export function BuilderLayout() {
     if (generation.error && !prevGenerating.current && !prevApplying.current) {
       // Only send error update if we're not in the middle of generation/application
       voiceAgent.sendSystemUpdate(
-        "Something went wrong. Let me know if you'd like me to try again"
+        "Hmm, ran into a small issue. Want me to try again?"
       );
       toast.error("Generation failed", { description: generation.error });
     }

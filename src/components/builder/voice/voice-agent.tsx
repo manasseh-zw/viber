@@ -154,7 +154,9 @@ export function VoiceAgent({
       sendSystemUpdate: (message: string) => {
         if (conversation.status === "connected") {
           try {
-            conversation.sendUserMessage(`[SYSTEM] ${message}`);
+            // Prefix with a subtle marker that indicates this is a system update/thought
+            // The agent's prompt will recognize this pattern and repeat it verbatim
+            conversation.sendUserMessage(`[UPDATE] ${message}`);
           } catch (error) {
             console.warn("[VoiceAgent] Failed to send system update:", error);
           }
