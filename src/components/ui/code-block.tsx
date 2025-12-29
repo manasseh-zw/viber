@@ -1,5 +1,3 @@
-"use client";
-
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import {
   transformerNotationDiff,
@@ -203,7 +201,6 @@ const lineNumberClassNames = cn(
 
 const darkModeClassNames = cn(
   "dark:[&_.shiki]:!text-[var(--shiki-dark)]",
-  // "dark:[&_.shiki]:!bg-[var(--shiki-dark-bg)]",
   "dark:[&_.shiki]:![font-style:var(--shiki-dark-font-style)]",
   "dark:[&_.shiki]:![font-weight:var(--shiki-dark-font-weight)]",
   "dark:[&_.shiki]:![text-decoration:var(--shiki-dark-text-decoration)]",
@@ -251,7 +248,6 @@ const wordHighlightClassNames = cn(
 const codeBlockClassName = cn(
   "mt-0 bg-background text-sm",
   "[&_pre]:py-4",
-  // "[&_.shiki]:!bg-[var(--shiki-bg)]",
   "[&_.shiki]:!bg-transparent",
   "[&_code]:w-full",
   "[&_code]:grid",
@@ -620,7 +616,6 @@ export const CodeBlockContent = ({
 
     highlight(children as string, language, themes)
       .then(setHtml)
-      // biome-ignore lint/suspicious/noConsole: "it's fine"
       .catch(console.error);
   }, [children, themes, syntaxHighlighting, language]);
 
@@ -630,9 +625,9 @@ export const CodeBlockContent = ({
 
   return (
     <div
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: "Kinda how Shiki works"
       dangerouslySetInnerHTML={{ __html: html }}
       {...props}
     />
   );
 };
+

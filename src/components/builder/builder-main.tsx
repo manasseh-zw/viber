@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
 import { CodeIcon } from "@phosphor-icons/react/dist/csr/Code";
-import { PreviewPanel } from "../preview/preview-panel";
-import { PreviewToolbar } from "../preview/preview-toolbar";
-import { CodePanel } from "../code";
+import { PreviewPanel } from "./preview/preview-panel";
+import { PreviewToolbar } from "./preview/preview-toolbar";
+import { CodePanel } from "./code";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GlowingBorder } from "@/components/ui/glowing-border";
 import type { StreamingFile } from "@/lib/hooks/use-generation";
@@ -44,7 +44,6 @@ export function BuilderMain({
   );
   const [iframeKey, setIframeKey] = useState(0);
 
-  // Auto-refresh iframe when trigger changes
   useEffect(() => {
     if (previewRefreshTrigger !== undefined && previewRefreshTrigger > 0) {
       setIframeKey((prev) => prev + 1);
@@ -87,7 +86,6 @@ export function BuilderMain({
           }}
           className="flex-1 flex flex-col overflow-hidden gap-0"
         >
-          {/* Tab bar */}
           <header className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
             <TabsList>
               <TabsTrigger value="preview" className="gap-2">
@@ -150,3 +148,4 @@ export function BuilderMain({
     </main>
   );
 }
+

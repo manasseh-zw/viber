@@ -11,7 +11,7 @@ import {
   CodeBlockFilename,
   CodeBlockHeader,
   CodeBlockItem,
-} from "@/components/kibo-ui/code-block";
+} from "@/components/ui/code-block";
 import { cn } from "@/lib/utils";
 
 interface CodeViewerProps {

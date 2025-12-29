@@ -12,7 +12,7 @@ import {
   CodeBlockBody,
   CodeBlockContent,
   CodeBlockItem,
-} from "@/components/kibo-ui/code-block";
+} from "@/components/ui/code-block";
 
 interface StreamingCodeViewerProps {
   currentFile: StreamingFile | null;
