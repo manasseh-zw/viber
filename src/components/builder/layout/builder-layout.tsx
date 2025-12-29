@@ -67,6 +67,9 @@ export function BuilderLayout() {
   const prevApplying = useRef(false);
   const lastFileUpdateRef = useRef<string | null>(null);
   const completedFilesRef = useRef<Set<string>>(new Set());
+  const pendingFileUpdatesRef = useRef<string[]>([]);
+  const fileUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFileUpdateTimeRef = useRef<number>(0);
 
   const handleNavigate = useCallback(
     (
@@ -136,44 +139,96 @@ export function BuilderLayout() {
       voiceAgent.sendSystemUpdate("Alright, let me build that for you");
       completedFilesRef.current.clear();
       lastFileUpdateRef.current = null;
+      pendingFileUpdatesRef.current = [];
+      lastFileUpdateTimeRef.current = Date.now();
+      if (fileUpdateTimeoutRef.current) {
+        clearTimeout(fileUpdateTimeoutRef.current);
+        fileUpdateTimeoutRef.current = null;
+      }
     }
 
-    // Send update when files complete (track via streamingFiles)
-    // This provides granular, meaningful updates throughout generation
+    const sendBatchedFileUpdates = () => {
+      if (pendingFileUpdatesRef.current.length === 0) return;
+
+      const files = pendingFileUpdatesRef.current;
+      pendingFileUpdatesRef.current = [];
+      lastFileUpdateTimeRef.current = Date.now();
+
+      if (files.length === 1) {
+        const friendlyName = getVoiceFriendlyFileName(files[0]);
+        voiceAgent.sendSystemUpdate(getFinishedMessage(friendlyName));
+      } else if (files.length <= 3) {
+        const fileNames = files
+          .map((path) => getVoiceFriendlyFileName(path))
+          .join(", ");
+        voiceAgent.sendSystemUpdate(`Finished ${fileNames}`);
+      } else {
+        voiceAgent.sendSystemUpdate(`Finished ${files.length} files so far`);
+      }
+    };
+
+    const scheduleFileUpdate = (filePath: string) => {
+      pendingFileUpdatesRef.current.push(filePath);
+
+      const timeSinceLastUpdate = Date.now() - lastFileUpdateTimeRef.current;
+      const minDelayBetweenUpdates = 3000;
+      const batchDelay = 2000;
+
+      if (timeSinceLastUpdate >= minDelayBetweenUpdates) {
+        if (fileUpdateTimeoutRef.current) {
+          clearTimeout(fileUpdateTimeoutRef.current);
+        }
+        fileUpdateTimeoutRef.current = setTimeout(() => {
+          sendBatchedFileUpdates();
+          fileUpdateTimeoutRef.current = null;
+        }, batchDelay);
+      } else {
+        const remainingDelay =
+          minDelayBetweenUpdates - timeSinceLastUpdate + batchDelay;
+        if (fileUpdateTimeoutRef.current) {
+          clearTimeout(fileUpdateTimeoutRef.current);
+        }
+        fileUpdateTimeoutRef.current = setTimeout(() => {
+          sendBatchedFileUpdates();
+          fileUpdateTimeoutRef.current = null;
+        }, remainingDelay);
+      }
+    };
+
     generation.streamingFiles.forEach((file) => {
       if (!completedFilesRef.current.has(file.path)) {
         completedFilesRef.current.add(file.path);
-        const friendlyName = getVoiceFriendlyFileName(file.path);
-        voiceAgent.sendSystemUpdate(getFinishedMessage(friendlyName));
+        scheduleFileUpdate(file.path);
       }
     });
-
-    // Also send update when a new file starts streaming (if it hasn't completed yet)
-    // This helps during long generations where files take time to complete
-    if (
-      generation.currentFile &&
-      generation.currentFile.path !== lastFileUpdateRef.current &&
-      !completedFilesRef.current.has(generation.currentFile.path)
-    ) {
-      lastFileUpdateRef.current = generation.currentFile.path;
-      const friendlyName = getVoiceFriendlyFileName(
-        generation.currentFile.path
-      );
-      voiceAgent.sendSystemUpdate(getWorkingOnMessage(friendlyName));
-    }
 
     if (
       !generation.isGenerating &&
       prevGenerating.current &&
       generation.files.length > 0
     ) {
-      const fileWord = generation.files.length === 1 ? "file" : "files";
-      voiceAgent.sendSystemUpdate(
-        `Got it. Created ${generation.files.length} ${fileWord} for you`
-      );
+      if (fileUpdateTimeoutRef.current) {
+        clearTimeout(fileUpdateTimeoutRef.current);
+        fileUpdateTimeoutRef.current = null;
+      }
+      sendBatchedFileUpdates();
+
+      setTimeout(() => {
+        const fileWord = generation.files.length === 1 ? "file" : "files";
+        voiceAgent.sendSystemUpdate(
+          `Got it. Created ${generation.files.length} ${fileWord} for you`
+        );
+      }, 1000);
     }
 
     prevGenerating.current = generation.isGenerating;
+
+    return () => {
+      if (fileUpdateTimeoutRef.current) {
+        clearTimeout(fileUpdateTimeoutRef.current);
+        fileUpdateTimeoutRef.current = null;
+      }
+    };
   }, [
     generation.isGenerating,
     generation.currentFile,
