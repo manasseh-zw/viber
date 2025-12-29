@@ -1,5 +1,4 @@
-export { BuilderLayout } from "./layout/builder-layout";
-export { BuilderMain } from "./layout/builder-main";
+export { BuilderMain } from "./builder-main";
 
 export { PreviewPanel, PreviewToolbar, SandboxIframe } from "./preview";
 

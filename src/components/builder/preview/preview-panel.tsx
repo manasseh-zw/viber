@@ -1,6 +1,6 @@
 import { LayoutGroup, motion } from "motion/react";
 import { EyeIcon } from "@phosphor-icons/react/dist/csr/Eye";
-import TextRotate from "@/components/fancy/text/text-rotate";
+import TextRotate from "@/components/ui/text-rotate";
 import { SandboxIframe } from "./sandbox-iframe";
 
 interface PreviewPanelProps {
