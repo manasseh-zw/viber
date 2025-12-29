@@ -31,18 +31,31 @@ function getVoiceFriendlyFileName(path: string): string {
   return `the ${words} file`;
 }
 
-function getFinishedMessage(friendlyName: string): string {
-  const messages = [
-    `Just finished ${friendlyName}`,
-    `Done with ${friendlyName}`,
-    `Finished up ${friendlyName}`,
-    `Completed ${friendlyName}`,
-    `Wrapped up ${friendlyName}`,
-    `Got ${friendlyName} done`,
-    `${friendlyName} is ready`,
-    `Finished putting together ${friendlyName}`,
+function getFinishedMessage(friendlyName: string, index: number): string {
+  const messageGroups = [
+    [
+      `Just finished ${friendlyName}`,
+      `Done with ${friendlyName}`,
+      `${friendlyName} is ready`,
+    ],
+    [
+      `Moving along, got ${friendlyName} done`,
+      `Making progress, finished ${friendlyName}`,
+      `${friendlyName} is complete`,
+    ],
+    [
+      `Still going, wrapped up ${friendlyName}`,
+      `Knocked out ${friendlyName}`,
+      `${friendlyName} is good to go`,
+    ],
+    [
+      `Almost there, just did ${friendlyName}`,
+      `${friendlyName} is done now`,
+      `Finished up ${friendlyName}`,
+    ],
   ];
-  return messages[Math.floor(Math.random() * messages.length)];
+  const group = messageGroups[Math.min(index, messageGroups.length - 1)];
+  return group[Math.floor(Math.random() * group.length)];
 }
 
 export const Route = createFileRoute("/builder/")({
@@ -59,11 +72,8 @@ function BuilderPage() {
   const prevSandboxReady = useRef(false);
   const prevGenerating = useRef(false);
   const prevApplying = useRef(false);
-  const lastFileUpdateRef = useRef<string | null>(null);
-  const completedFilesRef = useRef<Set<string>>(new Set());
-  const pendingFileUpdatesRef = useRef<string[]>([]);
-  const fileUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastFileUpdateTimeRef = useRef<number>(0);
+  const announcedFilesRef = useRef<Set<string>>(new Set());
+  const announcedCountRef = useRef(0);
 
   const handleNavigate = useCallback(
     (
@@ -130,101 +140,53 @@ function BuilderPage() {
   useEffect(() => {
     if (generation.isGenerating && !prevGenerating.current) {
       voiceAgent.sendSystemUpdate("Alright, let me build that for you");
-      completedFilesRef.current.clear();
-      lastFileUpdateRef.current = null;
-      pendingFileUpdatesRef.current = [];
-      lastFileUpdateTimeRef.current = Date.now();
-      if (fileUpdateTimeoutRef.current) {
-        clearTimeout(fileUpdateTimeoutRef.current);
-        fileUpdateTimeoutRef.current = null;
-      }
+      announcedFilesRef.current.clear();
+      announcedCountRef.current = 0;
     }
 
-    const sendBatchedFileUpdates = () => {
-      if (pendingFileUpdatesRef.current.length === 0) return;
+    const MAX_ANNOUNCEMENTS = 4;
+    const totalCompleted = generation.streamingFiles.length;
 
-      const files = pendingFileUpdatesRef.current;
-      pendingFileUpdatesRef.current = [];
-      lastFileUpdateTimeRef.current = Date.now();
+    if (
+      generation.isGenerating &&
+      totalCompleted > 0 &&
+      announcedCountRef.current < MAX_ANNOUNCEMENTS
+    ) {
+      const shouldAnnounce =
+        (announcedCountRef.current === 0 && totalCompleted >= 1) ||
+        (announcedCountRef.current === 1 && totalCompleted >= 3) ||
+        (announcedCountRef.current === 2 && totalCompleted >= 5) ||
+        (announcedCountRef.current === 3 && totalCompleted >= 7);
 
-      if (files.length === 1) {
-        const friendlyName = getVoiceFriendlyFileName(files[0]);
-        voiceAgent.sendSystemUpdate(getFinishedMessage(friendlyName));
-      } else if (files.length <= 3) {
-        const fileNames = files
-          .map((path) => getVoiceFriendlyFileName(path))
-          .join(", ");
-        voiceAgent.sendSystemUpdate(`Finished ${fileNames}`);
-      } else {
-        voiceAgent.sendSystemUpdate(`Finished ${files.length} files so far`);
-      }
-    };
-
-    const scheduleFileUpdate = (filePath: string) => {
-      pendingFileUpdatesRef.current.push(filePath);
-
-      const timeSinceLastUpdate = Date.now() - lastFileUpdateTimeRef.current;
-      const minDelayBetweenUpdates = 3000;
-      const batchDelay = 2000;
-
-      if (timeSinceLastUpdate >= minDelayBetweenUpdates) {
-        if (fileUpdateTimeoutRef.current) {
-          clearTimeout(fileUpdateTimeoutRef.current);
+      if (shouldAnnounce) {
+        const latestFile = generation.streamingFiles[totalCompleted - 1];
+        if (!announcedFilesRef.current.has(latestFile.path)) {
+          const currentIndex = announcedCountRef.current;
+          announcedFilesRef.current.add(latestFile.path);
+          announcedCountRef.current++;
+          const friendlyName = getVoiceFriendlyFileName(latestFile.path);
+          voiceAgent.sendSystemUpdate(
+            getFinishedMessage(friendlyName, currentIndex)
+          );
         }
-        fileUpdateTimeoutRef.current = setTimeout(() => {
-          sendBatchedFileUpdates();
-          fileUpdateTimeoutRef.current = null;
-        }, batchDelay);
-      } else {
-        const remainingDelay =
-          minDelayBetweenUpdates - timeSinceLastUpdate + batchDelay;
-        if (fileUpdateTimeoutRef.current) {
-          clearTimeout(fileUpdateTimeoutRef.current);
-        }
-        fileUpdateTimeoutRef.current = setTimeout(() => {
-          sendBatchedFileUpdates();
-          fileUpdateTimeoutRef.current = null;
-        }, remainingDelay);
       }
-    };
-
-    generation.streamingFiles.forEach((file) => {
-      if (!completedFilesRef.current.has(file.path)) {
-        completedFilesRef.current.add(file.path);
-        scheduleFileUpdate(file.path);
-      }
-    });
+    }
 
     if (
       !generation.isGenerating &&
       prevGenerating.current &&
       generation.files.length > 0
     ) {
-      if (fileUpdateTimeoutRef.current) {
-        clearTimeout(fileUpdateTimeoutRef.current);
-        fileUpdateTimeoutRef.current = null;
-      }
-      sendBatchedFileUpdates();
-
-      setTimeout(() => {
-        const fileWord = generation.files.length === 1 ? "file" : "files";
-        voiceAgent.sendSystemUpdate(
-          `Got it. Created ${generation.files.length} ${fileWord} for you`
-        );
-      }, 1000);
+      const totalFiles = generation.files.length;
+      const fileWord = totalFiles === 1 ? "file" : "files";
+      voiceAgent.sendSystemUpdate(
+        `All done. Created ${totalFiles} ${fileWord} for you`
+      );
     }
 
     prevGenerating.current = generation.isGenerating;
-
-    return () => {
-      if (fileUpdateTimeoutRef.current) {
-        clearTimeout(fileUpdateTimeoutRef.current);
-        fileUpdateTimeoutRef.current = null;
-      }
-    };
   }, [
     generation.isGenerating,
-    generation.currentFile,
     generation.streamingFiles,
     generation.files.length,
     voiceAgent,
