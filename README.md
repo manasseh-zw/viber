@@ -1,290 +1,174 @@
-Welcome to your new TanStack app! 
+<p align="center">
+  <img src="docs/banner.png" alt="Viber Banner" width="900"/>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</p>
 
-# Getting Started
+<p align="center">
+  <img src="docs/logo.svg" alt="Viber Logo" width="150"/>
+</p>
 
-To run this application:
+
+
+<p align="center">
+  <em>Vibecode with your voice </em>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Google%20Gemini-1A73E8?style=for-the-badge&logo=google&logoColor=white" alt="Google Gemini"/>
+  <img src="https://img.shields.io/badge/ElevenLabs-111111?style=for-the-badge" alt="ElevenLabs"/>
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
+  <img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React"/>
+  <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite"/>
+  <img src="https://img.shields.io/badge/Bun-000000?style=for-the-badge&logo=bun&logoColor=white" alt="Bun"/>
+  <img src="https://img.shields.io/badge/TanStack%20Start-0F172A?style=for-the-badge&logo=react&logoColor=white" alt="TanStack Start"/>
+</p>
+
+<br/>
+
+<p align="center">
+  <img src="docs/landing.png" alt="Viber Landing" width="800"/>
+</p>
+
+<p align="center">
+  <img src="docs/ready.png" alt="Viber Sandbox Ready" width="800"/>
+</p>
+
+<p align="center">
+  <img src="docs/build.png" alt="Viber Build (Code Agent Working)" width="800"/>
+</p>
+
+Viber is a speech-first coding experience: you describe what you want to build, the agent generates/edits real code, applies it to a sandboxed workspace, and you immediately see the result in a live preview — all while the voice agent narrates what’s happening.
+
+## Key Differentiators
+
+- **Voice-first UX**: talk like you’re speaking to another developer; no keyboard required for the primary workflow.
+- **Real code, real preview**: generated files are applied to a sandbox environment and reflected instantly in the preview.
+- **Agentic tool calling**: the ElevenLabs voice agent can trigger build actions and UI navigation via client-side tools.
+- **Surgical edits (context-aware)**: edit requests focus on relevant files rather than blasting the model with the entire codebase.
+- **Image-aware generation**: LLM-produced image descriptions are translated into real images via an Unsplash-backed API route.
+
+## Architecture
+
+- **User Device**: voice input + real-time UI preview
+- **ElevenLabs Voice Agent**: conversation loop, tool calls, narrated status updates
+- **Gemini Code Agent**: architecture + implementation (and fast routing/intent steps where applicable)
+- **Sandbox**: runs the generated Vite app and serves a preview URL
+
+<p align="center">
+  <img src="docs/architecture.png" alt="Viber Architecture" width="900"/>
+</p>
+
+## Getting Started
+
+### Prerequisites
+
+- Bun (recommended)
+- Node.js 18+ (optional; Bun is the primary path here)
+- Google Gemini API key
+- Unsplash API keys
+- ElevenLabs API key + Agent ID (optional, required only for voice mode)
+
+### Environment
+
+Create a `.env` file (or set env vars in your hosting provider):
+
+```bash
+GEMINI_API_KEY=...
+DEFAULT_MODEL=gemini-3-pro
+
+SANDBOX_API_KEY=...
+
+UNSPLASH_ACCESS_KEY=...
+UNSPLASH_SECRET_KEY=...
+
+# Optional (voice)
+ELEVENLABS_API_KEY=...
+VITE_ELEVENLABS_AGENT_ID=...
+
+# Optional (useful when the sandbox needs a public origin)
+IMAGE_CDN_BASE_URL=...
+```
+
+### Install & Run (Local)
 
 ```bash
 bun install
-bun --bun run start
+bun run dev
 ```
 
-# Building For Production
+The app runs on `http://localhost:3000`.
 
-To build this application for production:
+### Production Build (Local)
 
 ```bash
-bun --bun run build
+bun run build
+bun run start
 ```
 
-## Testing
+### Useful Scripts
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+- `bun run dev` - Start the app (Vite dev server on port 3000)
+- `bun run build` - Build for production
+- `bun run start` - Run the production server output
+- `bun run test` - Run tests (Vitest)
+
+## Docker
+
+### Build & Run
 
 ```bash
-bun --bun run test
+docker build -t viber .
+docker run --rm -p 3000:3000 \
+  -e GEMINI_API_KEY=... \
+  -e SANDBOX_API_KEY=... \
+  -e UNSPLASH_ACCESS_KEY=... \
+  -e UNSPLASH_SECRET_KEY=... \
+  -e ELEVENLABS_API_KEY=... \
+  -e IMAGE_CDN_BASE_URL=... \
+  viber
 ```
 
-## Styling
+Note: `VITE_ELEVENLABS_AGENT_ID` is a client-side (Vite) env var and is compiled into the frontend during build.
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+### Convenience Script
 
-
-
-
-## Routing
-This project uses [TanStack Router](https://tanstack.com/router). The initial setup is a file based router. Which means that the routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add another a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you use the `<Outlet />` component.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { Outlet, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-
-import { Link } from "@tanstack/react-router";
-
-export const Route = createRootRoute({
-  component: () => (
-    <>
-      <header>
-        <nav>
-          <Link to="/">Home</Link>
-          <Link to="/about">About</Link>
-        </nav>
-      </header>
-      <Outlet />
-      <TanStackRouterDevtools />
-    </>
-  ),
-})
-```
-
-The `<TanStackRouterDevtools />` component is not required so you can remove it if you don't want it in your layout.
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-const peopleRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/people",
-  loader: async () => {
-    const response = await fetch("https://swapi.dev/api/people");
-    return response.json() as Promise<{
-      results: {
-        name: string;
-      }[];
-    }>;
-  },
-  component: () => {
-    const data = peopleRoute.useLoaderData();
-    return (
-      <ul>
-        {data.results.map((person) => (
-          <li key={person.name}>{person.name}</li>
-        ))}
-      </ul>
-    );
-  },
-});
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-### React-Query
-
-React-Query is an excellent addition or alternative to route loading and integrating it into you application is a breeze.
-
-First add your dependencies:
+You can also use:
 
 ```bash
-bun install @tanstack/react-query @tanstack/react-query-devtools
+./docker.sh
 ```
 
-Next we'll need to create a query client and provider. We recommend putting those in `main.tsx`.
-
-```tsx
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-// ...
-
-const queryClient = new QueryClient();
-
-// ...
-
-if (!rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement);
-
-  root.render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  );
-}
-```
-
-You can also add TanStack Query Devtools to the root route (optional).
-
-```tsx
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-
-const rootRoute = createRootRoute({
-  component: () => (
-    <>
-      <Outlet />
-      <ReactQueryDevtools buttonPosition="top-right" />
-      <TanStackRouterDevtools />
-    </>
-  ),
-});
-```
-
-Now you can use `useQuery` to fetch your data.
-
-```tsx
-import { useQuery } from "@tanstack/react-query";
-
-import "./App.css";
-
-function App() {
-  const { data } = useQuery({
-    queryKey: ["people"],
-    queryFn: () =>
-      fetch("https://swapi.dev/api/people")
-        .then((res) => res.json())
-        .then((data) => data.results as { name: string }[]),
-    initialData: [],
-  });
-
-  return (
-    <div>
-      <ul>
-        {data.map((person) => (
-          <li key={person.name}>{person.name}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-export default App;
-```
-
-You can find out everything you need to know on how to use React-Query in the [React-Query documentation](https://tanstack.com/query/latest/docs/framework/react/overview).
-
-## State Management
-
-Another common requirement for React applications is state management. There are many options for state management in React. TanStack Store provides a great starting point for your project.
-
-First you need to add TanStack Store as a dependency:
+## Deployment (Google Cloud Run)
 
 ```bash
-bun install @tanstack/store
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com
+
+gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/viber .
+
+gcloud run deploy viber \
+  --image gcr.io/YOUR_PROJECT_ID/viber \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 3000 \
+  --set-env-vars GEMINI_API_KEY=... \
+  --set-env-vars SANDBOX_API_KEY=... \
+  --set-env-vars UNSPLASH_ACCESS_KEY=... \
+  --set-env-vars UNSPLASH_SECRET_KEY=...
 ```
 
-Now let's create a simple counter in the `src/App.tsx` file as a demonstration.
+## Links
 
-```tsx
-import { useStore } from "@tanstack/react-store";
-import { Store } from "@tanstack/store";
-import "./App.css";
+<div align="center">
+  <a href="https://ai-partner-catalyst.devpost.com/">
+    <img src="https://img.shields.io/badge/AI_Partner_Catalyst-000000?style=for-the-badge&logo=devpost&logoColor=white" alt="AI Partner Catalyst Hackathon"/>
+  </a>
+</div>
 
-const countStore = new Store(0);
+---
 
-function App() {
-  const count = useStore(countStore);
-  return (
-    <div>
-      <button onClick={() => countStore.setState((n) => n + 1)}>
-        Increment - {count}
-      </button>
-    </div>
-  );
-}
-
-export default App;
-```
-
-One of the many nice features of TanStack Store is the ability to derive state from other state. That derived state will update when the base state updates.
-
-Let's check this out by doubling the count using derived state.
-
-```tsx
-import { useStore } from "@tanstack/react-store";
-import { Store, Derived } from "@tanstack/store";
-import "./App.css";
-
-const countStore = new Store(0);
-
-const doubledStore = new Derived({
-  fn: () => countStore.state * 2,
-  deps: [countStore],
-});
-doubledStore.mount();
-
-function App() {
-  const count = useStore(countStore);
-  const doubledCount = useStore(doubledStore);
-
-  return (
-    <div>
-      <button onClick={() => countStore.setState((n) => n + 1)}>
-        Increment - {count}
-      </button>
-      <div>Doubled - {doubledCount}</div>
-    </div>
-  );
-}
-
-export default App;
-```
-
-We use the `Derived` class to create a new store that is derived from another store. The `Derived` class has a `mount` method that will start the derived store updating.
-
-Once we've created the derived store we can use it in the `App` component just like we would any other store using the `useStore` hook.
-
-You can find out everything you need to know on how to use TanStack Store in the [TanStack Store documentation](https://tanstack.com/store/latest).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
+<p align="center">
+  <em>Viber ~ because coding should feel like a conversation</em>
+</p>
